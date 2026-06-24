@@ -900,12 +900,24 @@ function Thumb({ tone, src, ref_, big }) {
   return <div style={{ ...S.thumb, width: sz, height: sz, overflow: "hidden", background: src ? `center/cover no-repeat url(${src})` : artGradient(tone) }}>{ref_ && <span style={S.refBadge}>ref</span>}</div>;
 }
 function Empty({ t }) { return <span style={{ color: MUTE, fontSize: 13 }}>{t}</span>; }
-function UploadOne({ label }) {
-  const [done, setDone] = useState(false);
+function UploadOne({ label, value, onChange }) {
+  const inputRef = React.useRef(null);
+  const handle = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => onChange && onChange(reader.result);
+    reader.readAsDataURL(file);
+  };
   return (
-    <button type="button" className="uploadone" onClick={() => setDone(true)}>
-      {done ? <><span style={{ color: GOLD }}>✓</span> {label} enviada</> : <><span style={{ fontSize: 18, color: GOLD }}>＋</span> {label}</>}
-    </button>
+    <div>
+      <button type="button" className="uploadone" onClick={() => inputRef.current?.click()}
+        style={value ? { borderStyle: "solid", padding: 0, height: 160, overflow: "hidden", background: `center/cover no-repeat url(${value})` } : undefined}>
+        {!value && <><span style={{ fontSize: 18, color: GOLD }}>＋</span> {label}</>}
+      </button>
+      {value && <button type="button" className="ghost sm" style={{ marginTop: 6 }} onClick={() => onChange && onChange(null)}>Trocar imagem</button>}
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={handle} />
+    </div>
   );
 }
 
