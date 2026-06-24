@@ -152,13 +152,38 @@ const seedOrders = () => [
 
 // =====================================================================
 export default function App() {
-  const [user, setUser] = useState(null);
+  const [session, setSession] = useState(null);
+  const [checking, setChecking] = useState(true);
+  const [role, setRole] = useState(null);
   const [orders, setOrders] = useState(seedOrders);
+  const fetchRole = useServerFn(getMyRole);
 
-  if (!user) return <Shell><Login onLogin={setUser} /></Shell>;
-  if (user.role === "admin")
-    return <Shell user={user} onLogout={() => setUser(null)}><Admin orders={orders} setOrders={setOrders} /></Shell>;
-  return <Shell user={user} onLogout={() => setUser(null)}><Client user={user} orders={orders} setOrders={setOrders} /></Shell>;
+  useEffect(() => {
+    supabase.auth.getSession().then(({ data }) => {
+      setSession(data.session);
+      setChecking(false);
+    });
+    const { data: sub } = supabase.auth.onAuthStateChange((_e, s) => {
+      setSession(s);
+    });
+    return () => sub.subscription.unsubscribe();
+  }, []);
+
+  useEffect(() => {
+    if (!session) { setRole(null); return; }
+    fetchRole().then((r) => setRole(r.isAdmin ? "admin" : "client")).catch(() => setRole("client"));
+  }, [session, fetchRole]);
+
+  const logout = async () => { await supabase.auth.signOut(); };
+
+  if (checking) return <Shell><div style={{ padding: 40, textAlign: "center", color: MUTE }}>Carregando…</div></Shell>;
+  if (!session) return <Shell><Login /></Shell>;
+  if (role === null) return <Shell user={{ email: session.user.email }} onLogout={logout}><div style={{ padding: 40, textAlign: "center", color: MUTE }}>Carregando seu ateliê…</div></Shell>;
+
+  const user = { email: session.user.email, role, cliente: { nome: session.user.email?.split("@")[0] || "" } };
+  if (role === "admin")
+    return <Shell user={user} onLogout={logout}><AdminCloud /></Shell>;
+  return <Shell user={user} onLogout={logout}><Client user={user} orders={orders} setOrders={setOrders} /></Shell>;
 }
 
 /* ---------------------------------- Shell ---------------------------------- */
@@ -181,12 +206,33 @@ function Shell({ children, user, onLogout }) {
   );
 }
 
-/* ---------------------------------- Login ---------------------------------- */
-function Login({ onLogin }) {
-  const [mode, setMode] = useState("email");
+/* ---------------------------------- Login (Supabase) ---------------------------------- */
+function Login() {
+  const [mode, setMode] = useState("signin"); // signin | signup
   const [email, setEmail] = useState("");
-  const [sent, setSent] = useState(false);
-  const enter = (role) => onLogin({ email: email || "ana@email.com", role, cliente: { nome: "Ana Beatriz" } });
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+  const [info, setInfo] = useState("");
+
+  const submit = async () => {
+    setError(""); setInfo(""); setLoading(true);
+    try {
+      if (mode === "signin") {
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        if (error) throw error;
+      } else {
+        const { error } = await supabase.auth.signUp({
+          email, password,
+          options: { emailRedirectTo: window.location.origin },
+        });
+        if (error) throw error;
+        setInfo("Conta criada! Você já está conectada.");
+      }
+    } catch (e) {
+      setError(e.message || "Erro ao entrar.");
+    } finally { setLoading(false); }
+  };
 
   return (
     <div className="reveal" style={{ maxWidth: 440, margin: "10px auto 0" }}>
@@ -195,32 +241,26 @@ function Login({ onLogin }) {
       <p style={S.lede}>Entre para enviar fotos, escolher um estilo e ver cada etapa da criação.</p>
       <div style={S.card}>
         <div className="tabs">
-          <button className={mode === "email" ? "tab on" : "tab"} onClick={() => setMode("email")}>E-mail e senha</button>
-          <button className={mode === "code" ? "tab on" : "tab"} onClick={() => setMode("code")}>Código por e-mail</button>
+          <button className={mode === "signin" ? "tab on" : "tab"} onClick={() => setMode("signin")}>Entrar</button>
+          <button className={mode === "signup" ? "tab on" : "tab"} onClick={() => setMode("signup")}>Criar conta</button>
         </div>
         <label className="lbl">E-mail</label>
         <input className="inp" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="voce@email.com" />
-        {mode === "email" ? (
-          <>
-            <label className="lbl">Senha</label>
-            <input className="inp" type="password" placeholder="••••••••" />
-            <button className="primary block" onClick={() => enter("client")}>Entrar</button>
-          </>
-        ) : !sent ? (
-          <button className="primary block" onClick={() => setSent(true)}>Enviar código</button>
-        ) : (
-          <>
-            <label className="lbl">Código enviado para seu e-mail</label>
-            <input className="inp" placeholder="000000" />
-            <button className="primary block" onClick={() => enter("client")}>Confirmar e entrar</button>
-          </>
-        )}
-        <button className="google" onClick={() => enter("client")}><b>G</b> Continuar com Google</button>
-        <div style={S.adminRow}><button className="ghost sm" onClick={() => enter("admin")}>Entrar como ateliê (admin)</button></div>
+        <label className="lbl">Senha</label>
+        <input className="inp" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+        {error && <p style={{ color: "#c0392b", marginTop: 10, fontSize: 13 }}>{error}</p>}
+        {info && <p style={{ color: "#2e7d32", marginTop: 10, fontSize: 13 }}>{info}</p>}
+        <button className="primary block" disabled={loading} onClick={submit}>
+          {loading ? "Aguarde…" : mode === "signin" ? "Entrar" : "Criar conta"}
+        </button>
+        <p style={{ color: MUTE, fontSize: 12, marginTop: 14, textAlign: "center" }}>
+          Primeiro acesso do ateliê? Crie a conta e, no painel, clique em "Sou o ateliê".
+        </p>
       </div>
     </div>
   );
 }
+
 
 /* ---------------------------------- Client ---------------------------------- */
 function Client({ user, orders, setOrders }) {
