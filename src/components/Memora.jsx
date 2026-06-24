@@ -364,31 +364,41 @@ function NewOrder({ onSubmit, onCancel, cliente }) {
 
         {phase === 3 && (
           <>
-            <p style={S.fieldHint}>Quem vai aparecer no quadro? Se as pessoas (ou pets) não têm uma foto juntos, tudo bem — envie as fotos separadas e nós montamos a cena.</p>
+            <p style={S.fieldHint}>Quem vai aparecer no quadro? Pode ser 1 ou 2 pessoas, com a opção de incluir o pet também.</p>
 
-            <Field label="Quantos vão aparecer no retrato?">
+            <Field label="Quantas pessoas vão aparecer?">
               <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[1, 2, 3, 4].map((n) => (
-                  <button key={n} className={f.sujeitos.length === n ? "chip on" : "chip"} onClick={() => setSujeitosCount(n)}>
-                    {n === 1 ? "Só uma pessoa" : `${n} ${n === 4 ? "ou mais" : ""}`.trim()}
+                {[1, 2].map((n) => (
+                  <button key={n} className={pessoasCount === n ? "chip on" : "chip"} onClick={() => setPessoas(n)}>
+                    {n === 1 ? "1 pessoa" : "2 pessoas"}
                   </button>
                 ))}
               </div>
             </Field>
 
-            {f.sujeitos.map((s, i) => (
-              <div key={s.id} style={S.subjectCard}>
-                <div style={S.subjectHead}>
-                  <span style={S.subjectNum}>{i + 1}</span>
-                  <input className="inp" style={{ flex: 1 }} value={s.quem} onChange={(e) => updateSujeito(s.id, { quem: e.target.value })}
-                    placeholder={i === 0 ? "Quem é? ex.: Você, eu mesma…" : "Quem é? ex.: meu cachorro, meu namorado…"} />
-                </div>
-                <label className="lbl" style={{ marginTop: 14 }}>Foto principal {s.quem ? `de ${s.quem}` : ""}</label>
-                <Uploader items={s.fotos} max={1} onChange={(fotos) => updateSujeito(s.id, { fotos })} hint="O rosto que vira obra" big />
-                <label className="lbl" style={{ marginTop: 14 }}>Outros ângulos (opcional, até 2)</label>
-                <Uploader items={s.fotosSecundarias} max={2} onChange={(fotosSecundarias) => updateSujeito(s.id, { fotosSecundarias })} hint="Mais ângulos do rosto" />
+            <Field label="Incluir o pet?">
+              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                <button className={!hasPet ? "chip on" : "chip"} onClick={() => { if (hasPet) togglePet(); }}>Sem pet</button>
+                <button className={hasPet ? "chip on" : "chip"} onClick={() => { if (!hasPet) togglePet(); }}>🐾 Com pet</button>
               </div>
-            ))}
+            </Field>
+
+            {f.sujeitos.map((s, i) => {
+              const isPet = s.tipo === "pet";
+              return (
+                <div key={s.id} style={S.subjectCard}>
+                  <div style={S.subjectHead}>
+                    <span style={S.subjectNum}>{isPet ? "🐾" : i + 1}</span>
+                    <input className="inp" style={{ flex: 1 }} value={s.quem} onChange={(e) => updateSujeito(s.id, { quem: e.target.value })}
+                      placeholder={isPet ? "Nome do pet — ex.: Luna, Thor…" : (i === 0 ? "Quem é? ex.: Você, eu mesma…" : "Quem é? ex.: meu namorado, minha mãe…")} />
+                  </div>
+                  <label className="lbl" style={{ marginTop: 14 }}>Foto principal {s.quem ? `de ${s.quem}` : (isPet ? "do pet" : "")}</label>
+                  <Uploader items={s.fotos} max={1} onChange={(fotos) => updateSujeito(s.id, { fotos })} hint={isPet ? "O focinho que vira obra" : "O rosto que vira obra"} big />
+                  <label className="lbl" style={{ marginTop: 14 }}>Outros ângulos (opcional, até 2)</label>
+                  <Uploader items={s.fotosSecundarias} max={2} onChange={(fotosSecundarias) => updateSujeito(s.id, { fotosSecundarias })} hint="Mais ângulos" />
+                </div>
+              );
+            })}
             <p style={S.microHint}>Mais ângulos ajudam o artista a captar melhor as feições de cada um.</p>
           </>
         )}
