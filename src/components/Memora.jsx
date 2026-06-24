@@ -599,23 +599,59 @@ function AdminDetail({ order, back, update }) {
   const v = order.versoes;
   const [v1, setV1] = useState(v[0]?.nome || "Versão mais vibrante");
   const [v1obs, setV1obs] = useState(v[0]?.obs || "");
+  const [v1img, setV1img] = useState(v[0]?.src || null);
   const [v2, setV2] = useState(v[1]?.nome || "Versão mais clássica");
   const [v2obs, setV2obs] = useState(v[1]?.obs || "");
-  const [msg, setMsg] = useState("");
+  const [v2img, setV2img] = useState(v[1]?.src || null);
+  const [finalImg, setFinalImg] = useState(order.final?.src || null);
 
-  const sendMsg = () => {
-    if (!msg.trim()) return;
-    update({ mensagens: [...order.mensagens, { id: uid(), de: "ateliê", texto: msg, data: today().slice(0, 6) }] });
-    setMsg("");
+  const NOTIFICACOES = [
+    { id: "recebido", label: "Pedido recebido", assunto: "Recebemos seu pedido ✦ Ateliê Memora", corpo: "Olá! Recebemos seu pedido e já estamos analisando cada detalhe com carinho. Em breve daremos início à produção." },
+    { id: "producao", label: "Em produção", assunto: "Seu retrato entrou em produção ✦ Ateliê Memora", corpo: "Boa notícia! Seu retrato acaba de entrar em produção. Logo te enviaremos duas versões para você escolher a favorita." },
+    { id: "ajustes", label: "Ajustes em andamento", assunto: "Estamos refinando seu retrato ✦ Ateliê Memora", corpo: "Recebemos seu pedido de ajuste e já estamos trabalhando nas alterações. Em breve te mostraremos o resultado." },
+    { id: "atraso", label: "Aviso de prazo", assunto: "Atualização sobre o prazo ✦ Ateliê Memora", corpo: "Queremos te avisar que precisaremos de alguns dias extras para entregar seu retrato com a qualidade que merece." },
+  ];
+  const [notifTipo, setNotifTipo] = useState("producao");
+  const [notifCorpo, setNotifCorpo] = useState(NOTIFICACOES[1].corpo);
+  const escolherNotif = (id) => {
+    const n = NOTIFICACOES.find((x) => x.id === id);
+    setNotifTipo(id);
+    setNotifCorpo(n.corpo);
   };
-  const sendVersions = () => update({
-    status: "aprovacao",
-    versoes: [
-      { id: uid(), nome: v1, obs: v1obs, tone: "#e7c9a0" },
-      { id: uid(), nome: v2, obs: v2obs, tone: "#cdbfa6" },
-    ],
-    mensagens: [...order.mensagens, { id: uid(), de: "ateliê", texto: "Suas duas versões estão prontas para aprovação!", data: today().slice(0, 6) }],
-  });
+
+  const mailto = (assunto, corpo) => {
+    const email = (order.cliente.email || "").trim();
+    if (!email) { alert("E-mail da cliente não preenchido."); return; }
+    const url = `mailto:${encodeURIComponent(email)}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+    window.location.href = url;
+  };
+
+  const enviarNotificacao = () => {
+    const n = NOTIFICACOES.find((x) => x.id === notifTipo);
+    mailto(n.assunto, `${notifCorpo}\n\nPedido #${order.id} — ${order.cliente.nome}\n\nCom carinho,\nAteliê Memora`);
+    if (notifTipo === "producao") update({ status: "producao" });
+    if (notifTipo === "ajustes") update({ status: "ajustes" });
+  };
+
+  const sendVersions = () => {
+    if (!v1img || !v2img) { alert("Faça o upload das duas imagens antes de enviar."); return; }
+    update({
+      status: "aprovacao",
+      versoes: [
+        { id: uid(), nome: v1, obs: v1obs, tone: "#e7c9a0", src: v1img },
+        { id: uid(), nome: v2, obs: v2obs, tone: "#cdbfa6", src: v2img },
+      ],
+    });
+    const corpo = `Olá ${order.cliente.nome.split(" ")[0] || ""}!\n\nSuas duas versões estão prontas para aprovação. Acesse sua área no Ateliê Memora para ver e escolher a favorita.\n\nPedido #${order.id}\n\nCom carinho,\nAteliê Memora`;
+    mailto("Suas versões estão prontas ✦ Ateliê Memora", corpo);
+  };
+
+  const sendFinal = () => {
+    if (!finalImg) { alert("Faça o upload do arquivo final antes de enviar."); return; }
+    update({ status: "finalizado", final: { tone: order.versoes[order.escolha ?? 0]?.tone || "#e4cba2", src: finalImg } });
+    const corpo = `Olá ${order.cliente.nome.split(" ")[0] || ""}!\n\nSeu retrato está pronto. Acesse sua área no Ateliê Memora para baixar o arquivo final em alta qualidade.\n\nPedido #${order.id}\n\nCom carinho,\nAteliê Memora`;
+    mailto("Sua obra está pronta ✦ Ateliê Memora", corpo);
+  };
 
   return (
     <div className="reveal" style={{ maxWidth: 940, margin: "0 auto" }}>
@@ -654,45 +690,49 @@ function AdminDetail({ order, back, update }) {
         {/* COLUNA 2 — ações do ateliê */}
         <div>
           <section style={S.card}>
-            <h2 style={S.h2}>Conversa com a cliente</h2>
-            <div style={{ maxHeight: 200, overflowY: "auto", marginBottom: 12 }}>
-              {order.mensagens.length === 0 && <p style={{ color: MUTE, fontSize: 14 }}>Nenhuma mensagem ainda.</p>}
-              {order.mensagens.map((m) => (
-                <div key={m.id} style={{ ...S.msg, background: m.de === "ateliê" ? "#faf6ec" : "#f4f1e9" }}>
-                  <div style={S.msgHead}><span>{m.de === "ateliê" ? "Você (ateliê)" : order.cliente.nome}</span><span style={{ color: MUTE }}>{m.data}</span></div>
-                  <p style={{ margin: "6px 0 0" }}>{m.texto}</p>
-                </div>
+            <h2 style={S.h2}>Notificar cliente por e-mail</h2>
+            <p style={{ color: MUTE, fontSize: 13, marginTop: -4 }}>
+              Envia direto para <strong>{order.cliente.email || "—"}</strong> abrindo seu cliente de e-mail.
+            </p>
+            <label className="lbl" style={{ marginTop: 12 }}>Mensagem automática</label>
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 10 }}>
+              {NOTIFICACOES.map((n) => (
+                <button key={n.id} className={notifTipo === n.id ? "chip on" : "chip"} onClick={() => escolherNotif(n.id)}>{n.label}</button>
               ))}
             </div>
-            <textarea className="inp ta" value={msg} onChange={(e) => setMsg(e.target.value)} placeholder="Escreva uma mensagem para a cliente…" />
-            <button className="primary" style={{ marginTop: 10 }} onClick={sendMsg}>Enviar mensagem</button>
+            <textarea className="inp ta" value={notifCorpo} onChange={(e) => setNotifCorpo(e.target.value)} rows={5} />
+            <button className="primary block" style={{ marginTop: 10 }} onClick={enviarNotificacao}>
+              ✉ Enviar e-mail à cliente
+            </button>
           </section>
 
           <section style={S.card}>
             <h2 style={S.h2}>Fluxo do pedido</h2>
-            <button className="ghost block" onClick={() => update({ status: "producao" })}>Marcar “Em produção”</button>
+            <button className="ghost block" onClick={() => update({ status: "producao" })}>Marcar "Em produção"</button>
 
             <div style={S.divider} />
             <h3 style={S.h3}>Subir 2 versões para a cliente escolher</h3>
 
             <label className="lbl">Versão 1 — nome</label>
             <input className="inp" value={v1} onChange={(e) => setV1(e.target.value)} />
-            <UploadOne label="Imagem da versão 1" />
+            <UploadOne label="Imagem da versão 1" value={v1img} onChange={setV1img} />
             <input className="inp" style={{ marginTop: 8 }} value={v1obs} onChange={(e) => setV1obs(e.target.value)} placeholder="Observação (ex.: mais vibrante)" />
 
             <label className="lbl" style={{ marginTop: 14 }}>Versão 2 — nome</label>
             <input className="inp" value={v2} onChange={(e) => setV2(e.target.value)} />
-            <UploadOne label="Imagem da versão 2" />
+            <UploadOne label="Imagem da versão 2" value={v2img} onChange={setV2img} />
             <input className="inp" style={{ marginTop: 8 }} value={v2obs} onChange={(e) => setV2obs(e.target.value)} placeholder="Observação (ex.: mais clássica)" />
 
-            <button className="primary block" style={{ marginTop: 14 }} onClick={sendVersions}>Enviar versões para aprovação</button>
+            <button className="primary block" style={{ marginTop: 14 }} onClick={sendVersions}>
+              ✉ Enviar versões para aprovação (por e-mail)
+            </button>
 
             <div style={S.divider} />
             <h3 style={S.h3}>Entrega final</h3>
-            <UploadOne label="Arquivo final aprovado" />
+            <UploadOne label="Arquivo final aprovado" value={finalImg} onChange={setFinalImg} />
             <p style={S.microHint}>Pré-visualização aplicada na parede (a cliente verá assim):</p>
             <div style={{ marginTop: 10 }}><RoomMockup tone={order.versoes[order.escolha ?? 0]?.tone || "#e4cba2"} orientacao={order.orientacao} /></div>
-            <button className="primary block" style={{ marginTop: 14 }} onClick={() => update({ status: "finalizado", final: { tone: order.versoes[order.escolha ?? 0]?.tone || "#e4cba2" } })}>Enviar arquivo final à cliente</button>
+            <button className="primary block" style={{ marginTop: 14 }} onClick={sendFinal}>✉ Enviar arquivo final à cliente</button>
           </section>
         </div>
       </div>
