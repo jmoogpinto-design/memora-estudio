@@ -284,11 +284,22 @@ function NewOrder({ onSubmit, onCancel, cliente }) {
   const set = (patch) => setF((p) => ({ ...p, ...patch }));
   const setC = (k, v) => setF((p) => ({ ...p, cliente: { ...p.cliente, [k]: v } }));
   const toggleTom = (id) => set({ tons: f.tons.includes(id) ? f.tons.filter((t) => t !== id) : [...f.tons, id] });
-  const setSujeitosCount = (n) => setF((p) => {
-    const arr = [...p.sujeitos];
-    while (arr.length < n) arr.push({ id: uid(), quem: "", fotos: [], fotosSecundarias: [] });
-    return { ...p, sujeitos: arr.slice(0, n) };
+  const rebuildSujeitos = (nPessoas, comPet) => setF((p) => {
+    const prev = p.sujeitos || [];
+    const pessoasPrev = prev.filter((s) => s.tipo !== "pet");
+    const petPrev = prev.find((s) => s.tipo === "pet");
+    const pessoas = [];
+    for (let i = 0; i < nPessoas; i++) {
+      pessoas.push(pessoasPrev[i] || { id: uid(), tipo: "pessoa", quem: "", fotos: [], fotosSecundarias: [] });
+    }
+    const arr = [...pessoas];
+    if (comPet) arr.push(petPrev || { id: uid(), tipo: "pet", quem: "", fotos: [], fotosSecundarias: [] });
+    return { ...p, sujeitos: arr };
   });
+  const pessoasCount = f.sujeitos.filter((s) => s.tipo !== "pet").length;
+  const hasPet = f.sujeitos.some((s) => s.tipo === "pet");
+  const setPessoas = (n) => rebuildSujeitos(n, hasPet);
+  const togglePet = () => rebuildSujeitos(pessoasCount, !hasPet);
   const updateSujeito = (id, patch) => setF((p) => ({ ...p, sujeitos: p.sujeitos.map((s) => (s.id === id ? { ...s, ...patch } : s)) }));
 
   const phases = ["Sobre você", "O formato", "As fotos", "O estilo"];
