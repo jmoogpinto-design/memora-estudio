@@ -519,7 +519,7 @@ function ClientDetail({ order, back, update }) {
       {order.status === "finalizado" && order.final && (
         <section style={S.card}>
           <h2 style={S.h2}>Sua obra está pronta.</h2>
-          <div style={{ ...S.bigArt, background: artGradient(order.final.tone), height: 340, marginBottom: 22, aspectRatio: ratioOf(order.orientacao) }} />
+          <div style={{ ...S.bigArt, background: order.final.src ? `center/cover no-repeat url(${order.final.src})` : artGradient(order.final.tone), height: 340, marginBottom: 22, aspectRatio: ratioOf(order.orientacao) }} />
           <h3 style={S.h3}>Veja na parede</h3>
           <RoomMockup tone={order.final.tone} orientacao={order.orientacao} />
           <div style={{ display: "flex", gap: 10, flexWrap: "wrap", marginTop: 18 }}>
