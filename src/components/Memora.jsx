@@ -844,6 +844,8 @@ function AdminCloudDetail({ order, back, onChanged }) {
             <button className="ghost block" onClick={() => setStatus("in_production")}>Marcar "Em produção"</button>
             <button className="ghost block" style={{ marginTop: 8 }} onClick={() => setStatus("completed")}>Marcar "Finalizado"</button>
           </section>
+
+          <PixCard order={order} onChanged={onChanged} mailto={mailto} />
         </div>
 
         <div>
