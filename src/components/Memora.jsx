@@ -865,6 +865,112 @@ function AdminCloudDetail({ order, back, onChanged }) {
   );
 }
 
+function PixCard({ order, onChanged, mailto }) {
+  const [priceStr, setPriceStr] = useState(order.price_cents != null ? (order.price_cents / 100).toFixed(2).replace(".", ",") : "");
+  const [saving, setSaving] = useState(false);
+  const [qrUrl, setQrUrl] = useState("");
+  const [copied, setCopied] = useState(false);
+  const savePrice = useServerFn(updateOrderPrice);
+  const markPaid = useServerFn(markOrderPaid);
+
+  const amount = useMemo(() => {
+    const n = Number(priceStr.replace(/\./g, "").replace(",", "."));
+    return isFinite(n) && n > 0 ? n : 0;
+  }, [priceStr]);
+
+  const payload = useMemo(() => {
+    if (!amount) return "";
+    return buildPixPayload({
+      key: PIX_KEY,
+      merchantName: PIX_NAME,
+      merchantCity: PIX_CITY,
+      amount,
+      txid: order.id.replace(/-/g, "").slice(0, 20),
+      description: `Pedido ${order.id.slice(0, 8)}`,
+    });
+  }, [amount, order.id]);
+
+  useEffect(() => {
+    if (!payload) { setQrUrl(""); return; }
+    QRCode.toDataURL(payload, { width: 260, margin: 1 }).then(setQrUrl).catch(() => setQrUrl(""));
+  }, [payload]);
+
+  const persistPrice = async () => {
+    setSaving(true);
+    try {
+      await savePrice({ data: { id: order.id, price_cents: amount ? Math.round(amount * 100) : null } });
+      onChanged();
+    } catch (e) { alert(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const copy = async () => {
+    if (!payload) return;
+    await navigator.clipboard.writeText(payload);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 1800);
+  };
+
+  const sendPaymentEmail = () => {
+    const firstName = order.client_name.split(" ")[0] || "";
+    const body =
+      `Olá ${firstName}!\n\n` +
+      `Para confirmar seu retrato (Pedido #${order.id.slice(0, 8)}), o pagamento é via Pix:\n\n` +
+      `Valor: R$ ${amount.toFixed(2).replace(".", ",")}\n` +
+      `Chave Pix (telefone): ${PIX_KEY}\n` +
+      `Recebedor: ${PIX_NAME}\n\n` +
+      `Pix Copia e Cola:\n${payload}\n\n` +
+      `Assim que recebermos, te avisamos por aqui.\nCom carinho, Ateliê Memora`;
+    mailto("Pagamento do seu retrato ✦ Ateliê Memora", body);
+  };
+
+  const togglePaid = async () => {
+    try {
+      await markPaid({ data: { id: order.id, paid: !order.paid_at } });
+      onChanged();
+    } catch (e) { alert(e.message); }
+  };
+
+  return (
+    <section style={S.card}>
+      <h2 style={S.h2}>Pagamento (Pix)</h2>
+      <label className="lbl">Valor (R$)</label>
+      <div style={{ display: "flex", gap: 8 }}>
+        <input className="inp" inputMode="decimal" placeholder="0,00" value={priceStr} onChange={(e) => setPriceStr(e.target.value)} style={{ flex: 1 }} />
+        <button className="ghost sm2" disabled={saving} onClick={persistPrice}>{saving ? "…" : "Salvar"}</button>
+      </div>
+
+      {order.paid_at ? (
+        <div style={{ marginTop: 14, padding: 12, background: "#e9f5ea", border: "1px solid #bcdcc0", borderRadius: 10 }}>
+          <strong style={{ color: "#2e7d32" }}>✓ Pagamento recebido</strong>
+          <div style={{ fontSize: 12, color: MUTE, marginTop: 4 }}>{new Date(order.paid_at).toLocaleString("pt-BR")}</div>
+          <button className="ghost sm2" style={{ marginTop: 8 }} onClick={togglePaid}>Desfazer</button>
+        </div>
+      ) : amount > 0 ? (
+        <>
+          {qrUrl && (
+            <div style={{ textAlign: "center", marginTop: 14 }}>
+              <img src={qrUrl} alt="QR Code Pix" style={{ width: 220, height: 220, border: "1px solid #eee", borderRadius: 10 }} />
+            </div>
+          )}
+          <label className="lbl" style={{ marginTop: 12 }}>Pix Copia e Cola</label>
+          <textarea className="inp ta" rows={3} readOnly value={payload} style={{ fontFamily: "monospace", fontSize: 11 }} />
+          <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+            <button className="ghost block" onClick={copy} style={{ flex: 1 }}>{copied ? "✓ Copiado" : "Copiar código"}</button>
+            <button className="ghost block" onClick={sendPaymentEmail} style={{ flex: 1 }}>✉ Enviar por e-mail</button>
+          </div>
+          <div style={{ fontSize: 12, color: MUTE, marginTop: 10 }}>
+            Chave: <strong>{PIX_KEY}</strong> · {PIX_NAME}
+          </div>
+          <button className="primary block" style={{ marginTop: 12 }} onClick={togglePaid}>Marcar como pago</button>
+        </>
+      ) : (
+        <p style={{ color: MUTE, fontSize: 13, marginTop: 12 }}>Defina o valor para gerar o QR Code Pix.</p>
+      )}
+    </section>
+  );
+}
+
 function FilePick({ file, onFile, existingUrl }) {
   const inputRef = useRef(null);
   const preview = file ? URL.createObjectURL(file) : existingUrl;
