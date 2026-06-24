@@ -499,7 +499,7 @@ function ClientDetail({ order, back, update }) {
           <div style={S.versionGrid}>
             {order.versoes.map((v, i) => (
               <button key={v.id} className={pick === i ? "version on" : "version"} onClick={() => setPick(i)}>
-                <div style={{ ...S.bigArt, background: artGradient(v.tone) }}>{pick === i && <span style={S.check}>✓</span>}</div>
+                <div style={{ ...S.bigArt, background: v.src ? `center/cover no-repeat url(${v.src})` : artGradient(v.tone) }}>{pick === i && <span style={S.check}>✓</span>}</div>
                 <strong>{v.nome}</strong>{v.obs && <span style={{ color: MUTE, fontSize: 13 }}>{v.obs}</span>}
               </button>
             ))}
