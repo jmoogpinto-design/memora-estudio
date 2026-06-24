@@ -627,7 +627,251 @@ function ResumoPedido({ order, style }) {
   );
 }
 
-/* ---------------------------------- Admin ---------------------------------- */
+/* ---------------------------------- Admin (Cloud) ---------------------------------- */
+const STATUS_LABELS = {
+  draft: "Rascunho",
+  awaiting_photos: "Aguardando fotos",
+  in_production: "Em produção",
+  versions_sent: "Versões enviadas",
+  approved: "Aprovado",
+  completed: "Finalizado",
+};
+
+function AdminCloud() {
+  const [orders, setOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [openId, setOpenId] = useState(null);
+  const [showNew, setShowNew] = useState(false);
+  const [showClaim, setShowClaim] = useState(false);
+  const fetchOrders = useServerFn(listOrders);
+  const claim = useServerFn(claimFirstAdmin);
+
+  const refresh = useCallback(() => {
+    setLoading(true);
+    fetchOrders().then((d) => { setOrders(d); setLoading(false); })
+      .catch((e) => { console.error(e); setLoading(false); });
+  }, [fetchOrders]);
+
+  useEffect(() => { refresh(); }, [refresh]);
+
+  if (openId) {
+    const order = orders.find((o) => o.id === openId);
+    if (!order) { setOpenId(null); return null; }
+    return <AdminCloudDetail order={order} back={() => { setOpenId(null); refresh(); }} onChanged={refresh} />;
+  }
+
+  return (
+    <div className="reveal">
+      <div style={S.dashHead}>
+        <div><p style={S.eyebrow}>Ateliê</p><h1 style={S.h1}>Todos os <em>pedidos</em></h1></div>
+        <div style={{ display: "flex", gap: 10 }}>
+          <button className="ghost sm" onClick={() => setShowClaim(true)}>Sou o ateliê</button>
+          <button className="primary" onClick={() => setShowNew(true)}>+ Novo pedido</button>
+        </div>
+      </div>
+
+      {loading ? <p style={{ color: MUTE }}>Carregando pedidos…</p> : (
+        <table style={S.table}>
+          <thead><tr><th>Pedido</th><th>Cliente</th><th>E-mail</th><th>Estilo</th><th>Pessoas</th><th>Pet</th><th>Status</th><th></th></tr></thead>
+          <tbody>
+            {orders.map((o) => (
+              <tr key={o.id} className="trow">
+                <td><strong>#{o.id.slice(0, 8)}</strong></td>
+                <td>{o.client_name}</td>
+                <td style={{ color: MUTE }}>{o.client_email}</td>
+                <td>{o.style || "—"}</td>
+                <td>{o.people_count}</td>
+                <td>{o.include_pet ? "Sim" : "—"}</td>
+                <td><span className="chip on" style={{ fontSize: 12 }}>{STATUS_LABELS[o.status] || o.status}</span></td>
+                <td><button className="ghost sm2" onClick={() => setOpenId(o.id)}>Abrir</button></td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+      {!loading && orders.length === 0 && <p style={{ color: MUTE, marginTop: 20 }}>Ainda não há pedidos. Clique em "+ Novo pedido".</p>}
+
+      {showNew && <NewOrderModal onClose={() => setShowNew(false)} onCreated={() => { setShowNew(false); refresh(); }} />}
+      {showClaim && (
+        <div style={S.modalBg} onClick={() => setShowClaim(false)}>
+          <div style={S.modal} onClick={(e) => e.stopPropagation()}>
+            <h2 style={S.h2}>Tornar-se administradora</h2>
+            <p style={{ color: MUTE, fontSize: 14 }}>Só funciona se ainda não houver nenhum admin no sistema. Use uma única vez, depois esconda este botão.</p>
+            <button className="primary block" style={{ marginTop: 12 }} onClick={async () => {
+              try { await claim(); alert("Pronto! Recarregue a página."); window.location.reload(); }
+              catch (e) { alert(e.message); }
+            }}>Quero ser admin</button>
+            <button className="ghost block" style={{ marginTop: 8 }} onClick={() => setShowClaim(false)}>Cancelar</button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewOrderModal({ onClose, onCreated }) {
+  const [form, setForm] = useState({ client_name: "", client_email: "", style: "", people_count: 1, include_pet: false, notes: "" });
+  const [saving, setSaving] = useState(false);
+  const create = useServerFn(createOrder);
+  const save = async () => {
+    if (!form.client_name || !form.client_email) { alert("Preencha nome e e-mail."); return; }
+    setSaving(true);
+    try { await create({ data: form }); onCreated(); }
+    catch (e) { alert(e.message); }
+    finally { setSaving(false); }
+  };
+  return (
+    <div style={S.modalBg} onClick={onClose}>
+      <div style={S.modal} onClick={(e) => e.stopPropagation()}>
+        <h2 style={S.h2}>Novo pedido</h2>
+        <label className="lbl">Nome do cliente</label>
+        <input className="inp" value={form.client_name} onChange={(e) => setForm({ ...form, client_name: e.target.value })} />
+        <label className="lbl">E-mail do cliente</label>
+        <input className="inp" type="email" value={form.client_email} onChange={(e) => setForm({ ...form, client_email: e.target.value })} />
+        <label className="lbl">Estilo</label>
+        <input className="inp" value={form.style} onChange={(e) => setForm({ ...form, style: e.target.value })} placeholder="aquarela, óleo, sketch…" />
+        <div style={{ display: "flex", gap: 14, marginTop: 10 }}>
+          <div style={{ flex: 1 }}>
+            <label className="lbl">Pessoas</label>
+            <select className="inp" value={form.people_count} onChange={(e) => setForm({ ...form, people_count: Number(e.target.value) })}>
+              <option value={1}>1 pessoa</option>
+              <option value={2}>2 pessoas</option>
+            </select>
+          </div>
+          <div style={{ flex: 1, display: "flex", alignItems: "flex-end" }}>
+            <label style={{ display: "flex", gap: 8, alignItems: "center", paddingBottom: 12 }}>
+              <input type="checkbox" checked={form.include_pet} onChange={(e) => setForm({ ...form, include_pet: e.target.checked })} /> Inclui pet
+            </label>
+          </div>
+        </div>
+        <label className="lbl">Observações</label>
+        <textarea className="inp ta" rows={3} value={form.notes} onChange={(e) => setForm({ ...form, notes: e.target.value })} />
+        <button className="primary block" disabled={saving} style={{ marginTop: 14 }} onClick={save}>{saving ? "Salvando…" : "Criar pedido"}</button>
+        <button className="ghost block" style={{ marginTop: 8 }} onClick={onClose}>Cancelar</button>
+      </div>
+    </div>
+  );
+}
+
+function AdminCloudDetail({ order, back, onChanged }) {
+  const [v1file, setV1file] = useState(null);
+  const [v2file, setV2file] = useState(null);
+  const [busy, setBusy] = useState(false);
+  const [versionUrls, setVersionUrls] = useState({});
+  const updateStatus = useServerFn(updateOrderStatus);
+  const saveVersion = useServerFn(upsertVersion);
+  const signedUrls = useServerFn(getSignedVersionUrls);
+
+  useEffect(() => {
+    const paths = (order.order_versions || []).map((v) => v.storage_path).filter(Boolean);
+    if (!paths.length) return;
+    signedUrls({ data: { paths } }).then((arr) => {
+      const map = {};
+      arr.forEach((x) => { map[x.path] = x.url; });
+      setVersionUrls(map);
+    });
+  }, [order.order_versions, signedUrls]);
+
+  const uploadVersion = async (n, file) => {
+    if (!file) return null;
+    const path = `${order.id}/v${n}-${Date.now()}-${file.name.replace(/\s+/g, "_")}`;
+    const { error } = await supabase.storage.from("order-images").upload(path, file, { upsert: false });
+    if (error) throw error;
+    await saveVersion({ data: { order_id: order.id, version_number: n, storage_path: path } });
+    return path;
+  };
+
+  const mailto = (assunto, corpo) => {
+    const url = `mailto:${encodeURIComponent(order.client_email)}?subject=${encodeURIComponent(assunto)}&body=${encodeURIComponent(corpo)}`;
+    window.location.href = url;
+  };
+
+  const sendVersions = async () => {
+    if (!v1file || !v2file) {
+      const existing = (order.order_versions || []).length;
+      if (existing < 2) { alert("Faça o upload das duas imagens antes de enviar."); return; }
+    }
+    setBusy(true);
+    try {
+      if (v1file) await uploadVersion(1, v1file);
+      if (v2file) await uploadVersion(2, v2file);
+      await updateStatus({ data: { id: order.id, status: "versions_sent" } });
+      const firstName = order.client_name.split(" ")[0] || "";
+      mailto(
+        "Suas versões estão prontas ✦ Ateliê Memora",
+        `Olá ${firstName}!\n\nSuas duas versões estão prontas para aprovação. Acesse sua área no Ateliê Memora para escolher a favorita.\n\nPedido #${order.id.slice(0, 8)}\n\nCom carinho,\nAteliê Memora`
+      );
+      onChanged();
+    } catch (e) { alert(e.message); }
+    finally { setBusy(false); }
+  };
+
+  const setStatus = async (status) => {
+    await updateStatus({ data: { id: order.id, status } });
+    onChanged();
+  };
+
+  return (
+    <div className="reveal" style={{ maxWidth: 940, margin: "0 auto" }}>
+      <button className="ghost sm" onClick={back}>← Todos os pedidos</button>
+      <div style={S.detailHead}>
+        <div><p style={S.eyebrow}>Pedido #{order.id.slice(0, 8)}</p><h1 style={S.h1}>{order.client_name}</h1></div>
+        <span className="chip on">{STATUS_LABELS[order.status] || order.status}</span>
+      </div>
+
+      <div style={S.adminCols}>
+        <div>
+          <section style={S.card}>
+            <h2 style={S.h2}>Dados do cliente</h2>
+            <Detail k="Nome" v={order.client_name} />
+            <Detail k="E-mail" v={order.client_email} />
+            <Detail k="Estilo" v={order.style || "—"} />
+            <Detail k="Pessoas" v={String(order.people_count)} />
+            <Detail k="Inclui pet" v={order.include_pet ? "Sim" : "Não"} />
+            {order.notes && <Detail k="Observações" v={order.notes} />}
+          </section>
+
+          <section style={S.card}>
+            <h2 style={S.h2}>Fluxo do pedido</h2>
+            <button className="ghost block" onClick={() => setStatus("in_production")}>Marcar "Em produção"</button>
+            <button className="ghost block" style={{ marginTop: 8 }} onClick={() => setStatus("completed")}>Marcar "Finalizado"</button>
+          </section>
+        </div>
+
+        <div>
+          <section style={S.card}>
+            <h2 style={S.h2}>2 versões para aprovação</h2>
+            <label className="lbl">Versão 1</label>
+            <FilePick file={v1file} onFile={setV1file} existingUrl={versionUrls[(order.order_versions || []).find((v) => v.version_number === 1)?.storage_path]} />
+            <label className="lbl" style={{ marginTop: 14 }}>Versão 2</label>
+            <FilePick file={v2file} onFile={setV2file} existingUrl={versionUrls[(order.order_versions || []).find((v) => v.version_number === 2)?.storage_path]} />
+            <button className="primary block" disabled={busy} style={{ marginTop: 14 }} onClick={sendVersions}>
+              {busy ? "Enviando…" : "✉ Enviar versões para aprovação (e-mail)"}
+            </button>
+          </section>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FilePick({ file, onFile, existingUrl }) {
+  const inputRef = useRef(null);
+  const preview = file ? URL.createObjectURL(file) : existingUrl;
+  return (
+    <div>
+      <button type="button" className="uploadone" onClick={() => inputRef.current?.click()}
+        style={preview ? { borderStyle: "solid", padding: 0, height: 160, overflow: "hidden", background: `center/cover no-repeat url(${preview})` } : undefined}>
+        {!preview && <><span style={{ fontSize: 18, color: GOLD }}>＋</span> Escolher imagem</>}
+      </button>
+      {file && <button type="button" className="ghost sm" style={{ marginTop: 6 }} onClick={() => onFile(null)}>Remover</button>}
+      <input ref={inputRef} type="file" accept="image/*" style={{ display: "none" }} onChange={(e) => onFile(e.target.files?.[0] || null)} />
+    </div>
+  );
+}
+
+/* ---------------------------------- Admin (legado prototype, não usado) ---------------------------------- */
+
 function Admin({ orders, setOrders }) {
   const [filter, setFilter] = useState("todos");
   const [openId, setOpenId] = useState(null);
