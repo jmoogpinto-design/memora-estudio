@@ -94,7 +94,9 @@ export type Database = {
           id: string
           include_pet: boolean
           notes: string | null
+          paid_at: string | null
           people_count: number
+          price_cents: number | null
           status: Database["public"]["Enums"]["order_status"]
           style: string | null
           updated_at: string
@@ -108,7 +110,9 @@ export type Database = {
           id?: string
           include_pet?: boolean
           notes?: string | null
+          paid_at?: string | null
           people_count?: number
+          price_cents?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           style?: string | null
           updated_at?: string
@@ -122,7 +126,9 @@ export type Database = {
           id?: string
           include_pet?: boolean
           notes?: string | null
+          paid_at?: string | null
           people_count?: number
+          price_cents?: number | null
           status?: Database["public"]["Enums"]["order_status"]
           style?: string | null
           updated_at?: string
