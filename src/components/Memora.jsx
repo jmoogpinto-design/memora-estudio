@@ -234,9 +234,9 @@ function Client({ user, orders, setOrders }) {
       </div>
       {mine.length === 0 ? (
         <div style={S.empty}>
-          <p style={{ fontSize: 18, fontFamily: SERIF }}>Seu ateliê está em branco.</p>
-          <p style={{ color: MUTE, marginTop: 6 }}>Envie uma foto que importa e damos vida a ela.</p>
-          <button className="primary" style={{ marginTop: 20 }} onClick={() => setView({ name: "new" })}>Começar um retrato</button>
+          <p style={{ fontSize: 18, fontFamily: SERIF }}>Já tem a sua ideia?</p>
+          <p style={{ color: MUTE, marginTop: 6 }}>Cada coleção tem um estilo artístico único. Escolha a que combina com você.</p>
+          <button className="primary" style={{ marginTop: 20 }} onClick={() => setView({ name: "new" })}>Criar o meu quadro</button>
         </div>
       ) : (
         <div style={S.grid}>{mine.map((o) => <OrderCard key={o.id} o={o} onOpen={() => setView({ name: "detail", id: o.id })} />)}</div>
