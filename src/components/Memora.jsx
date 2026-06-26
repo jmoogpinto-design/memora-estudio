@@ -1459,18 +1459,18 @@ function fmtFormato(o) {
 function fmtDate(iso) { if (!iso) return ""; const [y, m, d] = iso.split("-"); return `${d}/${m}/${y}`; }
 
 /* ---------------------------------- styles ---------------------------------- */
-const SERIF = "'Cormorant Garamond', Georgia, serif";
+const SERIF = "'Outfit', system-ui, sans-serif";
 const S = {
-  root: { minHeight: "100vh", background: PAPER, color: INK, fontFamily: "'Inter', system-ui, sans-serif" },
-  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "18px 28px", borderBottom: `1px solid ${LINE}`, position: "sticky", top: 0, background: "rgba(251,250,247,.88)", backdropFilter: "blur(8px)", zIndex: 10 },
+  root: { minHeight: "100vh", background: "#ffffff", color: INK, fontFamily: "'Figtree', system-ui, -apple-system, sans-serif" },
+  header: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 32px", borderBottom: `1px solid ${LINE}`, position: "sticky", top: 0, background: "rgba(255,255,255,.85)", backdropFilter: "blur(12px)", zIndex: 10 },
   brand: { display: "flex", alignItems: "baseline", gap: 10 },
   mark: { color: GOLD, fontSize: 18 },
-  wordmark: { fontFamily: SERIF, fontSize: 26, fontWeight: 600, letterSpacing: ".02em" },
-  tagline: { fontSize: 11, letterSpacing: ".22em", textTransform: "uppercase", color: "#b0a68f" },
+  wordmark: { fontFamily: SERIF, fontSize: 22, fontWeight: 700, letterSpacing: "-.01em" },
+  tagline: { fontSize: 10, letterSpacing: ".22em", textTransform: "uppercase", color: MUTE, fontWeight: 500 },
   headRight: { display: "flex", alignItems: "center", gap: 14 },
   userPill: { fontSize: 13, color: MUTE },
-  main: { maxWidth: 1080, margin: "0 auto", padding: "40px 28px 60px" },
-  footer: { textAlign: "center", padding: "30px", fontSize: 12, color: "#b0a68f", borderTop: `1px solid ${LINE}` },
+  main: { maxWidth: 880, margin: "0 auto", padding: "48px 28px 80px" },
+  footer: { textAlign: "center", padding: "30px", fontSize: 12, color: MUTE, borderTop: `1px solid ${LINE}` },
 
   eyebrow: { fontSize: 11, letterSpacing: ".24em", textTransform: "uppercase", color: GOLD, marginBottom: 10, fontWeight: 600 },
   h1: { fontFamily: SERIF, fontSize: 42, fontWeight: 500, lineHeight: 1.05, margin: 0, letterSpacing: "-.01em", color: INK },
