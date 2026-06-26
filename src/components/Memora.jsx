@@ -191,7 +191,22 @@ export default function App() {
   const user = { email: session.user.email, role, cliente: { nome: session.user.email?.split("@")[0] || "" } };
   if (role === "admin")
     return <Shell user={user} onLogout={logout}><AdminCloud /></Shell>;
-  return <Shell user={user} onLogout={logout}><Client user={user} orders={orders} setOrders={setOrders} /></Shell>;
+  return <Shell user={user} onLogout={logout}><><ClaimAdminBar /><Client user={user} orders={orders} setOrders={setOrders} /></></Shell>;
+}
+
+function ClaimAdminBar() {
+  const claim = useServerFn(claimFirstAdmin);
+  const [busy, setBusy] = useState(false);
+  return (
+    <div style={{ margin: "0 0 18px", padding: 12, border: `1px solid ${LINE}`, borderRadius: 12, background: "#fff", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 12 }}>
+      <div style={{ fontSize: 13, color: MUTE }}>É a artista do ateliê? Reivindique o acesso de administradora (só funciona se ainda não houver nenhum).</div>
+      <button className="ghost sm2" disabled={busy} onClick={async () => {
+        setBusy(true);
+        try { await claim(); alert("Pronto! Recarregando…"); window.location.reload(); }
+        catch (e) { alert(e.message || "Não foi possível"); setBusy(false); }
+      }}>{busy ? "Processando…" : "Sou a artista"}</button>
+    </div>
+  );
 }
 
 /* ---------------------------------- Shell ---------------------------------- */
