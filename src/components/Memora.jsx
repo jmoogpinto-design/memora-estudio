@@ -1555,19 +1555,19 @@ em { font-style: italic; color: ${GOLD}; }
 @media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
 
 .lbl { display: block; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: #b0a68f; margin: 0 0 7px; }
-.inp { width: 100%; padding: 12px 14px; border: 1px solid ${GOLD_SOFT}; border-radius: 6px; font-size: 15px; font-family: inherit; background: #fff; color: ${INK}; transition: border-color .2s, box-shadow .2s; }
-.inp:focus { outline: none; border-color: ${GOLD}; box-shadow: 0 0 0 3px rgba(154,123,63,.13); }
+.inp { width: 100%; padding: 12px 14px; border: 1px solid ${LINE}; border-radius: 10px; font-size: 15px; font-family: inherit; background: #fff; color: ${INK}; transition: border-color .15s, box-shadow .15s; }
+.inp:focus { outline: none; border-color: ${INK}; box-shadow: 0 0 0 3px rgba(13,13,13,.08); }
 .ta { resize: vertical; min-height: 88px; line-height: 1.5; }
 .ta.tall { min-height: 120px; }
 
 button { cursor: pointer; font-family: inherit; }
-.primary { background: ${INK}; color: #fff; border: none; padding: 13px 26px; border-radius: 6px; font-size: 14px; font-weight: 500; letter-spacing: .01em; transition: transform .15s, background .2s; }
-.primary:hover { transform: translateY(-1px); background: #000; }
-.primary:disabled { opacity: .38; cursor: not-allowed; transform: none; }
+.primary { background: ${INK}; color: #fff; border: none; padding: 12px 22px; border-radius: 10px; font-size: 14px; font-weight: 600; letter-spacing: 0; transition: transform .15s, background .2s, box-shadow .2s; }
+.primary:hover { background: #000; box-shadow: 0 8px 22px rgba(0,0,0,.18); }
+.primary:disabled { opacity: .35; cursor: not-allowed; box-shadow: none; }
 .primary.block { width: 100%; }
-.primary.lg { padding: 15px 32px; font-size: 15px; }
-.ghost { background: transparent; color: ${INK}; border: 1px solid ${GOLD_SOFT}; padding: 11px 20px; border-radius: 6px; font-size: 14px; transition: border-color .2s, color .2s; }
-.ghost:hover { border-color: ${GOLD}; color: ${GOLD}; }
+.primary.lg { padding: 14px 28px; font-size: 15px; }
+.ghost { background: #fff; color: ${INK}; border: 1px solid ${LINE}; padding: 11px 20px; border-radius: 10px; font-size: 14px; font-weight: 500; transition: border-color .15s, background .15s; }
+.ghost:hover { border-color: ${INK}; background: #fafafa; }
 .ghost.block { width: 100%; }
 .ghost:disabled { opacity: .4; cursor: not-allowed; }
 .ghost.sm { padding: 6px 0; border: none; color: ${MUTE}; margin-bottom: 14px; }
