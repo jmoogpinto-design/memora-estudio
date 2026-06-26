@@ -48,16 +48,14 @@ const securityHeadersMiddleware = createMiddleware().server(async ({ next }) => 
     "manifest-src 'self'",
   ].join("; ");
 
-  setResponseHeaders({
-    "content-security-policy": csp,
-    "x-frame-options": "SAMEORIGIN",
-    "x-content-type-options": "nosniff",
-    "referrer-policy": "strict-origin-when-cross-origin",
-    "permissions-policy": "camera=(), microphone=(), geolocation=(), interest-cohort=()",
-    "strict-transport-security": "max-age=63072000; includeSubDomains; preload",
-    "x-xss-protection": "0",
-    "cross-origin-opener-policy": "same-origin",
-  });
+  setResponseHeader("content-security-policy", csp);
+  setResponseHeader("x-frame-options", "SAMEORIGIN");
+  setResponseHeader("x-content-type-options", "nosniff");
+  setResponseHeader("referrer-policy", "strict-origin-when-cross-origin");
+  setResponseHeader("permissions-policy", "camera=(), microphone=(), geolocation=(), interest-cohort=()");
+  setResponseHeader("strict-transport-security", "max-age=63072000; includeSubDomains; preload");
+  setResponseHeader("x-xss-protection", "0");
+  setResponseHeader("cross-origin-opener-policy", "same-origin");
 
   return next();
 });
