@@ -1594,8 +1594,8 @@ button { cursor: pointer; font-family: inherit; }
 .tag.ajustes { background: #f3e6e0; color: #8a6a55; }
 .tag.finalizado { background: #e7efe6; color: #5d7a5a; }
 
-.chip { padding: 9px 16px; border: 1px solid ${GOLD_SOFT}; background: #fff; border-radius: 22px; font-size: 13px; color: #5c564c; transition: all .15s; font-weight: 500; }
-.chip:hover { border-color: ${GOLD}; }
+.chip { padding: 9px 16px; border: 1px solid ${LINE}; background: #fff; border-radius: 22px; font-size: 13px; color: ${INK}; transition: all .15s; font-weight: 500; }
+.chip:hover { border-color: ${INK}; }
 .chip.on { background: ${INK}; color: #fff; border-color: ${INK}; }
 
 .tonchip { display: flex; align-items: center; gap: 4px; padding: 8px 14px; border: 1px solid ${GOLD_SOFT}; background: #fff; border-radius: 22px; font-size: 13px; color: #5c564c; font-weight: 500; }
