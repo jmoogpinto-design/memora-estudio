@@ -1472,11 +1472,11 @@ const S = {
   main: { maxWidth: 880, margin: "0 auto", padding: "48px 28px 80px" },
   footer: { textAlign: "center", padding: "30px", fontSize: 12, color: MUTE, borderTop: `1px solid ${LINE}` },
 
-  eyebrow: { fontSize: 11, letterSpacing: ".24em", textTransform: "uppercase", color: GOLD, marginBottom: 10, fontWeight: 600 },
-  h1: { fontFamily: SERIF, fontSize: 42, fontWeight: 500, lineHeight: 1.05, margin: 0, letterSpacing: "-.01em", color: INK },
-  h2: { fontFamily: SERIF, fontSize: 25, fontWeight: 500, margin: "0 0 16px" },
-  h3: { fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "#b0a68f", margin: "22px 0 10px" },
-  lede: { color: MUTE, fontSize: 16, lineHeight: 1.6, margin: "14px 0 26px" },
+  eyebrow: { fontSize: 11, letterSpacing: ".22em", textTransform: "uppercase", color: GOLD, marginBottom: 12, fontWeight: 600 },
+  h1: { fontFamily: SERIF, fontSize: 44, fontWeight: 700, lineHeight: 1.05, margin: 0, letterSpacing: "-.025em", color: INK },
+  h2: { fontFamily: SERIF, fontSize: 24, fontWeight: 600, margin: "0 0 16px", letterSpacing: "-.015em" },
+  h3: { fontSize: 11, letterSpacing: ".16em", textTransform: "uppercase", color: MUTE, margin: "22px 0 10px", fontWeight: 600 },
+  lede: { color: MUTE, fontSize: 16, lineHeight: 1.6, margin: "14px 0 28px" },
 
   adminRow: { marginTop: 18, paddingTop: 16, borderTop: `1px solid ${LINE}`, textAlign: "center" },
   dashHead: { display: "flex", justifyContent: "space-between", alignItems: "flex-end", marginBottom: 30, flexWrap: "wrap", gap: 16 },
