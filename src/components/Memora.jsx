@@ -1546,7 +1546,7 @@ const S = {
 };
 
 const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;1,400;1,500&family=Inter:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap');
 * { box-sizing: border-box; }
 body { margin: 0; }
 em { font-style: italic; color: ${GOLD}; }
