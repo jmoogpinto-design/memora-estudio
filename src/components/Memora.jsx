@@ -1584,8 +1584,8 @@ button { cursor: pointer; font-family: inherit; }
 .tab { flex: 1; padding: 9px; border: none; background: transparent; border-radius: 5px; font-size: 13px; color: ${MUTE}; font-weight: 500; }
 .tab.on { background: #fff; color: ${GOLD}; box-shadow: 0 1px 3px rgba(0,0,0,.06); }
 
-.ordercard { text-align: left; background: #fff; border: 1px solid ${LINE}; border-radius: 8px; overflow: hidden; padding: 0; transition: transform .2s, box-shadow .2s; display: block; }
-.ordercard:hover { transform: translateY(-3px); box-shadow: 0 14px 34px rgba(31,27,22,.09); }
+.ordercard { text-align: left; background: #fff; border: 1px solid ${LINE}; border-radius: 14px; overflow: hidden; padding: 0; transition: transform .2s, box-shadow .2s, border-color .2s; display: block; }
+.ordercard:hover { transform: translateY(-3px); box-shadow: 0 18px 40px rgba(0,0,0,.08); border-color: ${INK}; }
 
 .tag { display: inline-block; font-size: 11px; letter-spacing: .03em; padding: 4px 11px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
 .tag.recebido { background: #f0ece2; color: #7a746b; }
