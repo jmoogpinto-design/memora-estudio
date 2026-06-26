@@ -1488,7 +1488,7 @@ const S = {
   cardPara: { fontSize: 16, margin: "2px 0 4px" },
   cardMeta: { fontSize: 13, color: "#b0a68f", marginBottom: 12 },
 
-  card: { background: "#fff", border: `1px solid ${LINE}`, borderRadius: 8, padding: "26px 28px", marginBottom: 22 },
+  card: { background: "#fff", border: `1px solid ${LINE}`, borderRadius: 14, padding: "28px 30px", marginBottom: 22 },
   fieldHint: { color: MUTE, marginBottom: 14, fontSize: 14 },
   microHint: { fontSize: 13, color: "#b0a68f", marginTop: 8 },
   wizardNav: { display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: 24, paddingTop: 20, borderTop: `1px solid ${LINE}` },
