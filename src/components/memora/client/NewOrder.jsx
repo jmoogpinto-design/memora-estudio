@@ -1,46 +1,83 @@
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { supabase } from "@/integrations/supabase/client";
 import { submitClientOrder, addOrderPhotos } from "@/lib/orders.functions";
-import { STYLES, ARTISTICOS, CENARIOS, PERSONALIDADES, TONS, ORIENTACOES, TAMANHOS } from "../constants.js";
-import { normalize, uid, phaseTitle } from "../helpers.js";
-import { S } from "../styles.js";
-import { Field, Uploader, ArtSample, InspiracoesGaleria, Stepper } from "../ui/pieces.jsx";
+import { STYLES, TONS, GOLD, MUTE, LINE } from "../constants.js";
+import { uid } from "../helpers.js";
 
-export default function NewOrder({ onSuccess, onCancel, cliente }) {
+const DESTINOS = [
+  { id: "para-mim", icon: "🪞", name: "Para mim", desc: "Amor próprio, memória pessoal" },
+  { id: "presente", icon: "🎁", name: "Presente", desc: "Alguém especial" },
+  { id: "casal", icon: "💑", name: "Casal", desc: "Casamento, aniversário" },
+  { id: "familia", icon: "🏡", name: "Família", desc: "Filhos, pais, pets" },
+];
+
+const CLIMA = [
+  { id: "realista", name: "Realista" },
+  { id: "onirico", name: "Onírico" },
+  { id: "popart", name: "Pop Art" },
+  { id: "minimalista", name: "Minimalista" },
+  { id: "street", name: "Street Art" },
+  { id: "colagem", name: "Colagem" },
+  { id: "classico", name: "Clássico" },
+];
+
+const PERSONALIDADES = [
+  { id: "delicada", name: "Delicada" },
+  { id: "elegante", name: "Elegante" },
+  { id: "vibrante", name: "Vibrante" },
+  { id: "calma", name: "Calma" },
+  { id: "sonhadora", name: "Sonhadora" },
+  { id: "criativa", name: "Criativa" },
+  { id: "afetiva", name: "Afetiva" },
+  { id: "urbana", name: "Urbana" },
+  { id: "sofisticada", name: "Sofisticada" },
+];
+
+const ORIENTACOES = [
+  { id: "retrato", name: "Retrato", desc: "Vertical" },
+  { id: "paisagem", name: "Paisagem", desc: "Horizontal" },
+  { id: "quadrado", name: "Quadrado", desc: "1:1" },
+];
+
+const TAMANHOS = [
+  { id: "a4", name: "A4 · 21×30" },
+  { id: "a3", name: "A3 · 30×42" },
+  { id: "medio", name: "Médio · 40×60" },
+  { id: "grande", name: "Grande · 60×90" },
+  { id: "sob-medida", name: "Sob medida" },
+];
+
+const PHASE_LABELS = ["Para quem", "As fotos", "O estilo", "A obra"];
+
+export default function NewOrder({ user, onSuccess, onCancel }) {
   const [phase, setPhase] = useState(1);
   const [submitting, setSubmitting] = useState(false);
-  const [f, setF] = useState(normalize({
-    cliente: { nome: cliente?.nome || "", nascimento: "", whatsapp: "", email: "" },
-    sujeitos: [{ id: uid(), quem: "", fotos: [], fotosSecundarias: [] }],
-  }));
-  const set = (patch) => setF((p) => ({ ...p, ...patch }));
-  const setC = (k, v) => setF((p) => ({ ...p, cliente: { ...p.cliente, [k]: v } }));
-  const toggleTom = (id) => set({ tons: f.tons.includes(id) ? f.tons.filter((t) => t !== id) : [...f.tons, id] });
-  const rebuildSujeitos = (nPessoas, comPet) => setF((p) => {
-    const prev = p.sujeitos || [];
-    const pessoasPrev = prev.filter((s) => s.tipo !== "pet");
-    const petPrev = prev.find((s) => s.tipo === "pet");
-    const pessoas = [];
-    for (let i = 0; i < nPessoas; i++) {
-      pessoas.push(pessoasPrev[i] || { id: uid(), tipo: "pessoa", quem: "", fotos: [], fotosSecundarias: [] });
-    }
-    const arr = [...pessoas];
-    if (comPet) arr.push(petPrev || { id: uid(), tipo: "pet", quem: "", fotos: [], fotosSecundarias: [] });
-    return { ...p, sujeitos: arr };
+  const [f, setF] = useState({
+    destinatario: "",
+    nome: "",
+    fotos: [],
+    fotosExtras: [],
+    numPessoas: 1,
+    comPet: false,
+    estilo: "",
+    clima: [],
+    tons: [],
+    personalidades: [],
+    notas: "",
+    orientacao: "",
+    tamanho: "",
   });
-  const pessoasCount = f.sujeitos.filter((s) => s.tipo !== "pet").length;
-  const hasPet = f.sujeitos.some((s) => s.tipo === "pet");
-  const setPessoas = (n) => rebuildSujeitos(n, hasPet);
-  const togglePet = () => rebuildSujeitos(pessoasCount, !hasPet);
-  const updateSujeito = (id, patch) => setF((p) => ({ ...p, sujeitos: p.sujeitos.map((s) => (s.id === id ? { ...s, ...patch } : s)) }));
 
-  const phases = ["Sobre você", "O formato", "As fotos", "O estilo"];
+  const set = (patch) => setF((p) => ({ ...p, ...patch }));
+  const toggle = (key, val) =>
+    set({ [key]: f[key].includes(val) ? f[key].filter((x) => x !== val) : [...f[key], val] });
+
   const canNext = {
-    1: f.cliente.nome && f.cliente.email,
-    2: f.orientacao && f.tamanho,
-    3: f.sujeitos.every((s) => s.fotos.length > 0),
-    4: f.estilo,
+    1: !!f.destinatario,
+    2: f.fotos.length > 0,
+    3: !!f.estilo,
+    4: !!f.orientacao && !!f.tamanho,
   }[phase];
 
   const submitFn = useServerFn(submitClientOrder);
@@ -50,62 +87,38 @@ export default function NewOrder({ onSuccess, onCancel, cliente }) {
     if (!canNext || submitting) return;
     setSubmitting(true);
     try {
-      // 1. Cria o pedido no banco
-      const formData = {
-        cliente: f.cliente,
-        estilo: f.estilo,
-        artistico: f.artistico,
-        cenario: f.cenario,
-        personalidades: f.personalidades,
-        tons: f.tons,
-        orientacao: f.orientacao,
-        tamanho: f.tamanho,
-        tamanhoOutro: f.tamanhoOutro,
-        inspiracoes: f.inspiracoes,
-        extra: f.extra,
-        sujeitos: f.sujeitos.map((s) => ({
-          id: s.id, tipo: s.tipo, quem: s.quem,
-          fotos: s.fotos.map((p) => ({ id: p.id, name: p.name })),
-          fotosSecundarias: s.fotosSecundarias.map((p) => ({ id: p.id, name: p.name })),
-        })),
-      };
       const { id: orderId } = await submitFn({
         data: {
-          client_name: f.cliente.nome,
-          client_email: f.cliente.email,
+          client_name: f.nome || user?.email?.split("@")[0] || "Cliente",
+          client_email: user?.email || "",
           style: f.estilo || null,
-          people_count: f.sujeitos.filter((s) => s.tipo !== "pet").length || 1,
-          include_pet: f.sujeitos.some((s) => s.tipo === "pet"),
-          form_data: formData,
+          people_count: f.numPessoas,
+          include_pet: f.comPet,
+          form_data: {
+            destinatario: f.destinatario,
+            nome: f.nome,
+            clima: f.clima,
+            tons: f.tons,
+            personalidades: f.personalidades,
+            notas: f.notas,
+            orientacao: f.orientacao,
+            tamanho: f.tamanho,
+          },
         },
       });
 
-      // 2. Faz upload das fotos para o Storage
+      const allFotos = [...f.fotos, ...f.fotosExtras];
       const paths = [];
-      for (let si = 0; si < f.sujeitos.length; si++) {
-        const s = f.sujeitos[si];
-        for (let pi = 0; pi < s.fotos.length; pi++) {
-          const foto = s.fotos[pi];
-          if (foto._file) {
-            const path = `${orderId}/fotos/s${si}_${pi}_${foto.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-            const { error } = await supabase.storage.from("order-images").upload(path, foto._file);
-            if (!error) paths.push(path);
-          }
-        }
-        for (let pi = 0; pi < s.fotosSecundarias.length; pi++) {
-          const foto = s.fotosSecundarias[pi];
-          if (foto._file) {
-            const path = `${orderId}/fotos/s${si}_sec${pi}_${foto.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
-            const { error } = await supabase.storage.from("order-images").upload(path, foto._file);
-            if (!error) paths.push(path);
-          }
+      for (let i = 0; i < allFotos.length; i++) {
+        const foto = allFotos[i];
+        if (foto._file) {
+          const prefix = i < f.fotos.length ? "principal" : "extra";
+          const path = `${orderId}/fotos/${prefix}_${i}_${foto.name.replace(/[^a-zA-Z0-9._-]/g, "_")}`;
+          const { error } = await supabase.storage.from("order-images").upload(path, foto._file);
+          if (!error) paths.push(path);
         }
       }
-
-      // 3. Registra as fotos no banco
-      if (paths.length > 0) {
-        await photosFn({ data: { order_id: orderId, paths } });
-      }
+      if (paths.length > 0) await photosFn({ data: { order_id: orderId, paths } });
 
       onSuccess();
     } catch (e) {
@@ -115,179 +128,250 @@ export default function NewOrder({ onSuccess, onCancel, cliente }) {
     }
   };
 
+  const pct = (phase / 4) * 100;
+
   return (
-    <div className="reveal" style={{ maxWidth: 720, margin: "0 auto" }}>
-      <button className="ghost sm" onClick={onCancel}>← Voltar</button>
-      <p style={S.eyebrow}>Novo retrato · etapa {phase} de 4</p>
-      <h1 style={S.h1}>{phaseTitle(phase)}</h1>
-      <Stepper steps={phases} step={phase - 1} />
+    <div style={{ maxWidth: 560, margin: "0 auto", padding: "0 0 40px" }} className="reveal">
 
-      <div style={S.card}>
-        {phase === 1 && (
-          <>
-            <p style={S.fieldHint}>Para começarmos a te conhecer.</p>
-            <Field label="Nome completo"><input className="inp" value={f.cliente.nome} onChange={(e) => setC("nome", e.target.value)} placeholder="Seu nome" /></Field>
-            <Field label="Data de nascimento"><input className="inp" type="date" value={f.cliente.nascimento} onChange={(e) => setC("nascimento", e.target.value)} /></Field>
-            <Field label="WhatsApp"><input className="inp" value={f.cliente.whatsapp} onChange={(e) => setC("whatsapp", e.target.value)} placeholder="(00) 00000-0000" /></Field>
-            <Field label="E-mail"><input className="inp" value={f.cliente.email} onChange={(e) => setC("email", e.target.value)} placeholder="voce@email.com" /></Field>
-          </>
-        )}
-
-        {phase === 2 && (
-          <>
-            <Field label="Orientação do quadro">
-              <div style={S.orientRow}>
-                {ORIENTACOES.map((o) => (
-                  <button key={o.id} className={f.orientacao === o.id ? "orient on" : "orient"} onClick={() => set({ orientacao: o.id, tamanho: "" })}>
-                    <span style={S.orientIconBox}><span style={{ ...S.orientShape, aspectRatio: o.ratio }} /></span>
-                    <span style={S.orientName}>{o.name}</span>
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            {f.orientacao && (
-              <Field label="Tamanho">
-                <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                  {TAMANHOS[f.orientacao].map((t) => (
-                    <button key={t.id} className={f.tamanho === t.id ? "sizechip on" : "sizechip"} onClick={() => set({ tamanho: t.id, tamanhoOutro: "" })}>
-                      <strong>{t.name}</strong><span>{t.cm}</span>
-                    </button>
-                  ))}
-                  <button className={f.tamanho === "outro" ? "sizechip on" : "sizechip"} onClick={() => set({ tamanho: "outro" })}>
-                    <strong>Outro</strong><span>medida sob medida</span>
-                  </button>
-                </div>
-                {f.tamanho === "outro" && (
-                  <input className="inp" style={{ marginTop: 10 }} value={f.tamanhoOutro} onChange={(e) => set({ tamanhoOutro: e.target.value })}
-                    placeholder="Escreva o tamanho desejado — ex.: 50 × 70 cm" />
-                )}
-              </Field>
-            )}
-          </>
-        )}
-
-        {phase === 3 && (
-          <>
-            <p style={S.fieldHint}>Quem vai aparecer no quadro? Pode ser 1 ou 2 pessoas, com a opção de incluir o pet também.</p>
-
-            <Field label="Quantas pessoas vão aparecer?">
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {[1, 2].map((n) => (
-                  <button key={n} className={pessoasCount === n ? "chip on" : "chip"} onClick={() => setPessoas(n)}>
-                    {n === 1 ? "1 pessoa" : "2 pessoas"}
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            <Field label="Incluir o pet?">
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                <button className={!hasPet ? "chip on" : "chip"} onClick={() => { if (hasPet) togglePet(); }}>Sem pet</button>
-                <button className={hasPet ? "chip on" : "chip"} onClick={() => { if (!hasPet) togglePet(); }}>🐾 Com pet</button>
-              </div>
-            </Field>
-
-            {f.sujeitos.map((s, i) => {
-              const isPet = s.tipo === "pet";
-              return (
-                <div key={s.id} style={S.subjectCard}>
-                  <div style={S.subjectHead}>
-                    <span style={S.subjectNum}>{isPet ? "🐾" : i + 1}</span>
-                    <input className="inp" style={{ flex: 1 }} value={s.quem} onChange={(e) => updateSujeito(s.id, { quem: e.target.value })}
-                      placeholder={isPet ? "Nome do pet — ex.: Luna, Thor…" : (i === 0 ? "Quem é? ex.: Você, eu mesma…" : "Quem é? ex.: meu namorado, minha mãe…")} />
-                  </div>
-                  <label className="lbl" style={{ marginTop: 14 }}>Foto principal {s.quem ? `de ${s.quem}` : (isPet ? "do pet" : "")}</label>
-                  <Uploader items={s.fotos} max={1} onChange={(fotos) => updateSujeito(s.id, { fotos })} hint={isPet ? "O focinho que vira obra" : "O rosto que vira obra"} big />
-                  <label className="lbl" style={{ marginTop: 14 }}>Outros ângulos (opcional, até 2)</label>
-                  <Uploader items={s.fotosSecundarias} max={2} onChange={(fotosSecundarias) => updateSujeito(s.id, { fotosSecundarias })} hint="Mais ângulos" />
-                </div>
-              );
-            })}
-            <p style={S.microHint}>Mais ângulos ajudam o artista a captar melhor as feições de cada um.</p>
-          </>
-        )}
-
-        {phase === 4 && (
-          <>
-            <Field label="1 · Tipo de pintura — qual acabamento de pincel e tinta te encanta?">
-              <div style={S.artGrid}>
-                {STYLES.map((s) => (
-                  <button key={s.id} className={f.estilo === s.id ? "painttype on" : "painttype"} onClick={() => set({ estilo: s.id })}>
-                    <img src={s.img} alt={s.name} style={S.artImg} />
-                    <div className="ptbody">
-                      <strong>{s.name}</strong><span>{s.desc}</span>
-                      <div className="ptbrush" style={{ backgroundImage: `url(${s.brush})` }} aria-hidden="true" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            <Field label="2 · Estilo artístico — conjunto de técnicas, temas e formas que caracterizam a produção">
-              <div style={S.artGrid}>
-                {ARTISTICOS.map((a) => (
-                  <button key={a.id} className={f.artistico === a.id ? "artcard on" : "artcard"} onClick={() => set({ artistico: a.id })}>
-                    <img src={a.img} alt={a.name} style={S.artImg} />
-                    <strong>{a.name}</strong><span>{a.desc}</span>
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            <Field label="3 · Universo da imagem — o que envolve a pessoa">
-              <div style={S.artGrid}>
-                {CENARIOS.map((c) => (
-                  <button key={c.id} className={f.cenario === c.id ? "artcard sm on" : "artcard sm"} onClick={() => set({ cenario: c.id })}>
-                    <ArtSample kind={c.art} />
-                    <strong>{c.name}</strong>
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            <Field label="4 · Personalidade — o que a obra deve transmitir? (pode escolher várias)">
-              <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-                {PERSONALIDADES.map((p) => (
-                  <button key={p.id} className={f.personalidades.includes(p.id) ? "chip on" : "chip"}
-                    onClick={() => set({ personalidades: f.personalidades.includes(p.id) ? f.personalidades.filter((x) => x !== p.id) : [...f.personalidades, p.id] })}>
-                    {p.name}
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            <Field label="Quais tons você imagina?">
-              <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-                {TONS.map((t) => (
-                  <button key={t.id} className={f.tons.includes(t.id) ? "tonchip on" : "tonchip"} onClick={() => toggleTom(t.id)}>
-                    <span style={S.tonDots}>{t.colors.map((c, i) => <i key={i} style={{ background: c }} />)}</span>{t.name}
-                  </button>
-                ))}
-              </div>
-            </Field>
-
-            <Field label="Selecione na galeria até 3 inspirações que você ama">
-              <InspiracoesGaleria selected={f.inspiracoes} onChange={(inspiracoes) => set({ inspiracoes })} />
-            </Field>
-
-            <Field label="Tem mais algo que gostaria de incluir no seu quadro?">
-              <textarea className="inp ta" value={f.extra} onChange={(e) => set({ extra: e.target.value })}
-                placeholder="Uma frase, um nome, um objeto especial, o seu pet, um livro, um elemento essencial para você…" />
-              <p style={S.microHint}>Esse quadro deve refletir quem a pessoa é, o que sente e o que sonha.</p>
-            </Field>
-          </>
-        )}
-
-        <div style={S.wizardNav}>
-          {phase > 1 ? <button className="ghost" onClick={() => setPhase(phase - 1)}>Anterior</button> : <span />}
-          {phase < 4
-            ? <button className="primary" disabled={!canNext} onClick={() => setPhase(phase + 1)}>Continuar</button>
-            : <button className="primary lg" disabled={!canNext || submitting} onClick={handleSubmit}>
-                {submitting ? "Enviando…" : "Enviar para o ateliê"}
-              </button>}
+      {/* Nav + dots */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "2.5rem" }}>
+        <div style={{ fontSize: 15, fontWeight: 500, letterSpacing: "0.02em" }}>✦ <strong>Memora</strong></div>
+        <div style={{ display: "flex", gap: 6, alignItems: "center" }}>
+          {PHASE_LABELS.map((_, i) => {
+            const n = i + 1;
+            const active = n === phase;
+            const done = n < phase;
+            return (
+              <div key={n} style={{
+                height: 6, borderRadius: 3,
+                width: active ? 18 : 6,
+                background: active || done ? GOLD : LINE,
+                opacity: done ? 0.4 : 1,
+                transition: "all 0.3s",
+              }} />
+            );
+          })}
         </div>
       </div>
+
+      {/* Progress bar */}
+      <div style={{ height: 2, background: LINE, borderRadius: 1, marginBottom: "2.5rem", overflow: "hidden" }}>
+        <div style={{ height: "100%", width: `${pct}%`, background: GOLD, borderRadius: 1, transition: "width 0.4s ease" }} />
+      </div>
+
+      {/* Section label */}
+      <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: "0.08em", textTransform: "uppercase", color: GOLD, marginBottom: "1rem" }}>
+        Etapa {phase} de 4 · {PHASE_LABELS[phase - 1]}
+      </div>
+
+      {/* ── Etapa 1: Para quem é? ── */}
+      {phase === 1 && (
+        <>
+          <h1 style={{ fontSize: 26, fontWeight: 500, marginBottom: 6, lineHeight: 1.2 }}>Este retrato é para você<br />ou para presentear?</h1>
+          <p style={{ fontSize: 15, color: MUTE, marginBottom: "2rem", lineHeight: 1.5 }}>Isso vai nos ajudar a entender o que faz sentido nele.</p>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+            {DESTINOS.map((d) => (
+              <button key={d.id} onClick={() => set({ destinatario: d.id })} style={{
+                border: `${f.destinatario === d.id ? 2 : 1}px solid ${f.destinatario === d.id ? GOLD : LINE}`,
+                borderRadius: 12, padding: "1.1rem 1rem", cursor: "pointer",
+                background: f.destinatario === d.id ? "#fdf9ef" : "#fff",
+                textAlign: "left", transition: "all 0.18s",
+              }}>
+                <div style={{ fontSize: 22, marginBottom: 8 }}>{d.icon}</div>
+                <div style={{ fontSize: 14, fontWeight: 500 }}>{d.name}</div>
+                <div style={{ fontSize: 12, color: MUTE, marginTop: 2, lineHeight: 1.4 }}>{d.desc}</div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Etapa 2: As fotos ── */}
+      {phase === 2 && (
+        <>
+          <h1 style={{ fontSize: 26, fontWeight: 500, marginBottom: 6, lineHeight: 1.2 }}>Quem vai virar obra?</h1>
+          <p style={{ fontSize: 15, color: MUTE, marginBottom: "2rem", lineHeight: 1.5 }}>Envie a foto principal. Quanto mais o rosto estiver visível e iluminado, melhor o resultado.</p>
+
+          <PhotoZone items={f.fotos} max={1} onChange={(fotos) => set({ fotos })}
+            label="Toque para enviar a foto principal" hint="JPG ou PNG · Rosto bem iluminado, de frente" />
+
+          <details style={{ marginTop: 8, marginBottom: "1.5rem" }}>
+            <summary style={{ fontSize: 13, color: MUTE, cursor: "pointer", listStyle: "none", marginBottom: 10 }}>
+              + Adicionar mais ângulos (opcional)
+            </summary>
+            <PhotoZone items={f.fotosExtras} max={2} onChange={(fotosExtras) => set({ fotosExtras })}
+              label="Perfil ou outro ângulo" hint="Mais referências ajudam" />
+          </details>
+
+          <div style={{ height: 0.5, background: LINE, margin: "1.5rem 0" }} />
+
+          <label className="lbl">Sobre quem é este quadro?</label>
+          <input className="inp" value={f.nome} onChange={(e) => set({ nome: e.target.value })}
+            placeholder="ex.: Você, minha mãe, Ana…" style={{ marginBottom: 16 }} />
+
+          <label className="lbl">Quantas pessoas vão aparecer?</label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {[1, 2].map((n) => (
+              <button key={n} className={f.numPessoas === n ? "chip on" : "chip"} onClick={() => set({ numPessoas: n })}>
+                {n === 1 ? "1 pessoa" : "2 pessoas"}
+              </button>
+            ))}
+            <button className={f.comPet ? "chip on" : "chip"} onClick={() => set({ comPet: !f.comPet })}>+ um pet 🐾</button>
+          </div>
+        </>
+      )}
+
+      {/* ── Etapa 3: O estilo ── */}
+      {phase === 3 && (
+        <>
+          <h1 style={{ fontSize: 26, fontWeight: 500, marginBottom: 6, lineHeight: 1.2 }}>Como você imagina<br />essa obra?</h1>
+          <p style={{ fontSize: 15, color: MUTE, marginBottom: "2rem", lineHeight: 1.5 }}>Escolha o que mais te atrai. Você pode combinar técnica e estilo livremente.</p>
+
+          <label className="lbl" style={{ marginBottom: 10 }}>Técnica</label>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 8, marginBottom: "1.5rem" }}>
+            {STYLES.map((s) => (
+              <button key={s.id} onClick={() => set({ estilo: s.id })} style={{
+                border: `${f.estilo === s.id ? 2 : 1}px solid ${f.estilo === s.id ? GOLD : LINE}`,
+                borderRadius: 10, overflow: "hidden", cursor: "pointer", background: "#fff",
+                textAlign: "left", transition: "all 0.18s", padding: 0,
+              }}>
+                <div style={{ width: "100%", height: 72, overflow: "hidden" }}>
+                  <img src={s.img} alt={s.name} style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                </div>
+                <div style={{ fontSize: 12, fontWeight: 500, padding: "7px 8px" }}>{s.name}</div>
+              </button>
+            ))}
+          </div>
+
+          <label className="lbl" style={{ marginBottom: 10 }}>Clima da obra</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "1.5rem" }}>
+            {CLIMA.map((c) => (
+              <button key={c.id} className={f.clima.includes(c.id) ? "chip on" : "chip"} onClick={() => toggle("clima", c.id)}>
+                {c.name}
+              </button>
+            ))}
+          </div>
+
+          <label className="lbl" style={{ marginBottom: 10 }}>Tons</label>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            {TONS.map((t) => (
+              <button key={t.id} className={f.tons.includes(t.id) ? "tonchip on" : "tonchip"} onClick={() => toggle("tons", t.id)}>
+                <span style={{ display: "flex", gap: 3 }}>
+                  {t.colors.map((c, i) => <i key={i} style={{ width: 8, height: 8, borderRadius: "50%", background: c, display: "inline-block" }} />)}
+                </span>
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ── Etapa 4: O que a obra carrega ── */}
+      {phase === 4 && (
+        <>
+          <h1 style={{ fontSize: 26, fontWeight: 500, marginBottom: 6, lineHeight: 1.2 }}>O que você quer<br />guardar nela?</h1>
+          <p style={{ fontSize: 15, color: MUTE, marginBottom: "2rem", lineHeight: 1.5 }}>Este é o momento de contar o que torna essa pessoa única. Quanto mais você compartilhar, mais a obra vai parecer com ela.</p>
+
+          <label className="lbl">Personalidade (pode escolher várias)</label>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginBottom: "1.5rem" }}>
+            {PERSONALIDADES.map((p) => (
+              <button key={p.id} className={f.personalidades.includes(p.id) ? "chip on" : "chip"} onClick={() => toggle("personalidades", p.id)}>
+                {p.name}
+              </button>
+            ))}
+          </div>
+
+          <label className="lbl">Há algo que você quer incluir na obra?</label>
+          <textarea className="inp ta" rows={3} value={f.notas} onChange={(e) => set({ notas: e.target.value })}
+            placeholder="Uma frase, um nome, um objeto especial, uma flor favorita, uma data... qualquer coisa que faça parte da história dela."
+            style={{ marginBottom: 6 }} />
+          <p style={{ fontSize: 12, color: MUTE, fontStyle: "italic", marginBottom: "1.5rem", lineHeight: 1.5 }}>
+            Não se preocupe em ser técnica. A artista vai interpretar com cuidado.
+          </p>
+
+          <div style={{ height: 0.5, background: LINE, margin: "1.5rem 0" }} />
+
+          <label className="lbl" style={{ marginBottom: 8 }}>Formato do quadro</label>
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr 1fr", gap: 8, marginBottom: 10 }}>
+            {ORIENTACOES.map((o) => (
+              <button key={o.id} onClick={() => set({ orientacao: o.id, tamanho: "" })} style={{
+                border: `${f.orientacao === o.id ? 2 : 1}px solid ${f.orientacao === o.id ? GOLD : LINE}`,
+                borderRadius: 12, padding: "1rem", cursor: "pointer",
+                background: f.orientacao === o.id ? "#fdf9ef" : "#fff",
+                textAlign: "left", transition: "all 0.18s",
+              }}>
+                <div style={{ fontSize: 14, fontWeight: 500 }}>{o.name}</div>
+                <div style={{ fontSize: 12, color: MUTE, marginTop: 2 }}>{o.desc}</div>
+              </button>
+            ))}
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginTop: 10 }}>
+            {TAMANHOS.map((t) => (
+              <button key={t.id} className={f.tamanho === t.id ? "chip on" : "chip"} onClick={() => set({ tamanho: t.id })}>
+                {t.name}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* Footer */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "2rem", paddingTop: "1.5rem", borderTop: `0.5px solid ${LINE}` }}>
+        <button className="ghost" onClick={phase > 1 ? () => setPhase(phase - 1) : onCancel}>← Voltar</button>
+        {phase < 4
+          ? <button className="primary" disabled={!canNext} onClick={() => setPhase(phase + 1)}>Continuar</button>
+          : <button className="primary" style={{ background: GOLD }} disabled={!canNext || submitting} onClick={handleSubmit}>
+              {submitting ? "Enviando…" : "Enviar para a artista →"}
+            </button>
+        }
+      </div>
+    </div>
+  );
+}
+
+function PhotoZone({ items, max, onChange, label, hint }) {
+  const ref = useRef();
+  const add = (files) => {
+    const arr = Array.from(files).slice(0, max - items.length);
+    const readers = arr.map((file) => new Promise((res) => {
+      const r = new FileReader();
+      r.onload = () => res({ id: uid(), src: r.result, name: file.name, _file: file });
+      r.readAsDataURL(file);
+    }));
+    Promise.all(readers).then((imgs) => onChange([...items, ...imgs]));
+  };
+
+  return (
+    <div style={{ marginBottom: 12 }}>
+      {items.length === 0 ? (
+        <button onClick={() => ref.current.click()} style={{
+          width: "100%", border: `1.5px dashed ${LINE}`, borderRadius: 12,
+          padding: "2rem", textAlign: "center", cursor: "pointer",
+          background: "#fafaf9", display: "block", transition: "all 0.15s",
+        }}>
+          <div style={{ fontSize: 28, marginBottom: 8, color: GOLD }}>＋</div>
+          <div style={{ fontSize: 13, color: MUTE }}>{label}</div>
+          {hint && <div style={{ fontSize: 11, color: MUTE, marginTop: 4 }}>{hint}</div>}
+        </button>
+      ) : (
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {items.map((it) => (
+            <div key={it.id} style={{
+              position: "relative", width: 100, height: 100, borderRadius: 10, overflow: "hidden",
+              background: `center/cover no-repeat url(${it.src})`,
+            }}>
+              <button className="rm" onClick={() => onChange(items.filter((x) => x.id !== it.id))}>×</button>
+            </div>
+          ))}
+          {items.length < max && (
+            <button className="dropzone" onClick={() => ref.current.click()}>
+              <span style={{ fontSize: 22, color: GOLD }}>＋</span>
+            </button>
+          )}
+        </div>
+      )}
+      <input ref={ref} type="file" accept="image/*" multiple={max > 1} hidden onChange={(e) => add(e.target.files)} />
     </div>
   );
 }

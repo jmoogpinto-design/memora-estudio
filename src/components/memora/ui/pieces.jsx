@@ -1,5 +1,6 @@
-import React, { useState, useRef } from "react";
-import { GOLD, MUTE, LINE, GALERIA, STATUSES } from "../constants.js";
+import React, { useState, useRef, useEffect } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { GOLD, MUTE, LINE, STATUSES } from "../constants.js";
 import { artGradient, uid, ratioOf } from "../helpers.js";
 import { S } from "../styles.js";
 
@@ -55,19 +56,43 @@ export function ArtStyleSample({ kind }) {
   }
 }
 
-/* ---- InspiracoesGaleria: seleção de até 3 da galeria ---- */
+/* ---- InspiracoesGaleria: seleção de até 3 da galeria (imagens do Supabase Storage) ---- */
 export function InspiracoesGaleria({ selected, onChange }) {
   const [open, setOpen] = useState(false);
+  const [images, setImages] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || images.length > 0) return;
+    setLoading(true);
+    supabase.storage.from("gallery").list("", { limit: 100, sortBy: { column: "name", order: "asc" } })
+      .then(({ data }) => {
+        if (!data) return;
+        setImages(
+          data
+            .filter((f) => f.name !== ".emptyFolderPlaceholder")
+            .map((f) => ({
+              id: f.name,
+              url: supabase.storage.from("gallery").getPublicUrl(f.name).data.publicUrl,
+            }))
+        );
+      })
+      .finally(() => setLoading(false));
+  }, [open]);
+
   const toggle = (id) => {
     if (selected.includes(id)) onChange(selected.filter((x) => x !== id));
     else if (selected.length < 3) onChange([...selected, id]);
   };
+
+  const getUrl = (id) => images.find((x) => x.id === id)?.url;
+
   return (
     <div>
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
         {selected.map((id) => {
-          const g = GALERIA.find((x) => x.id === id);
-          return <div key={id} style={{ ...S.thumb, width: 70, height: 70, overflow: "hidden" }}><ArtSample kind={g?.art} /></div>;
+          const url = getUrl(id);
+          return <div key={id} style={{ ...S.thumb, width: 70, height: 70, overflow: "hidden", background: url ? `center/cover no-repeat url(${url})` : "#ece5d8" }} />;
         })}
         <button className="ghost" type="button" onClick={() => setOpen(true)}>✦ Abrir galeria de inspirações</button>
         <span style={{ fontSize: 13, color: MUTE }}>{selected.length}/3 selecionadas</span>
@@ -81,14 +106,20 @@ export function InspiracoesGaleria({ selected, onChange }) {
               <button className="ghost sm2" onClick={() => setOpen(false)}>Fechar</button>
             </div>
             <p style={{ color: MUTE, fontSize: 14, margin: "0 0 16px" }}>Toque para selecionar até 3 que combinam com o que você sonha.</p>
-            <div style={S.galeriaGrid}>
-              {GALERIA.map((g) => (
-                <button key={g.id} type="button" className={selected.includes(g.id) ? "gitem on" : "gitem"} onClick={() => toggle(g.id)}>
-                  <ArtSample kind={g.art} />
-                  {selected.includes(g.id) && <span style={S.gcheck}>✓</span>}
-                </button>
-              ))}
-            </div>
+            {loading && <p style={{ color: MUTE, textAlign: "center", padding: 24 }}>Carregando…</p>}
+            {!loading && images.length === 0 && (
+              <p style={{ color: MUTE, textAlign: "center", padding: 24 }}>Em breve — obras sendo adicionadas.</p>
+            )}
+            {!loading && images.length > 0 && (
+              <div style={S.galeriaGrid}>
+                {images.map((g) => (
+                  <button key={g.id} type="button" className={selected.includes(g.id) ? "gitem on" : "gitem"} onClick={() => toggle(g.id)}>
+                    <img src={g.url} alt="" style={{ width: "100%", height: 84, objectFit: "cover", display: "block", borderRadius: "6px 6px 0 0" }} />
+                    {selected.includes(g.id) && <span style={S.gcheck}>✓</span>}
+                  </button>
+                ))}
+              </div>
+            )}
             <button className="primary block" style={{ marginTop: 18 }} onClick={() => setOpen(false)}>Concluir seleção ({selected.length}/3)</button>
           </div>
         </div>

@@ -28,7 +28,7 @@ export default function Client({ user }) {
   useEffect(() => { refresh(); }, [refresh]);
 
   if (view.name === "new")
-    return <NewOrder cliente={user.cliente} onCancel={() => setView({ name: "dash" })}
+    return <NewOrder user={user} onCancel={() => setView({ name: "dash" })}
       onSuccess={() => { setView({ name: "dash" }); refresh(); }} />;
 
   if (view.name === "detail") {
