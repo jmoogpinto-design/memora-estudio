@@ -14,7 +14,7 @@ export const listOrders = createServerFn({ method: "GET" })
 
 export const createOrder = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (d: {
       client_name: string;
       client_email: string;
@@ -50,7 +50,7 @@ export const createOrder = createServerFn({ method: "POST" })
 
 export const updateOrderStatus = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; status: string }) => d)
+  .validator((d: { id: string; status: string }) => d)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("orders")
@@ -62,7 +62,7 @@ export const updateOrderStatus = createServerFn({ method: "POST" })
 
 export const updateOrderPrice = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; price_cents: number | null }) => d)
+  .validator((d: { id: string; price_cents: number | null }) => d)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("orders")
@@ -74,7 +74,7 @@ export const updateOrderPrice = createServerFn({ method: "POST" })
 
 export const markOrderPaid = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { id: string; paid: boolean }) => d)
+  .validator((d: { id: string; paid: boolean }) => d)
   .handler(async ({ data, context }) => {
     const { error } = await context.supabase
       .from("orders")
@@ -86,7 +86,7 @@ export const markOrderPaid = createServerFn({ method: "POST" })
 
 export const upsertVersion = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (d: { order_id: string; version_number: 1 | 2; storage_path: string }) => d,
   )
   .handler(async ({ data, context }) => {
@@ -107,19 +107,14 @@ export const upsertVersion = createServerFn({ method: "POST" })
 export const claimFirstAdmin = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }) => {
-    const { supabaseAdmin } = await import(
-      "@/integrations/supabase/client.server"
-    );
-    const { count, error: countErr } = await supabaseAdmin
-      .from("user_roles")
-      .select("*", { count: "exact", head: true })
-      .eq("role", "admin");
-    if (countErr) throw new Error(countErr.message);
-    if ((count ?? 0) > 0) throw new Error("Já existe um administrador.");
-    const { error } = await supabaseAdmin
+    const { error } = await context.supabase
       .from("user_roles")
       .insert({ user_id: context.userId, role: "admin" });
-    if (error) throw new Error(error.message);
+    if (error) {
+      if (error.code === "42501" || error.message.includes("row-level security"))
+        throw new Error("Já existe uma administradora.");
+      throw new Error(error.message);
+    }
     return { ok: true };
   });
 
@@ -134,9 +129,70 @@ export const getMyRole = createServerFn({ method: "GET" })
     return { isAdmin: roles.includes("admin"), roles };
   });
 
+export const submitClientOrder = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(
+    (d: {
+      client_name: string;
+      client_email: string;
+      style: string | null;
+      people_count: number;
+      include_pet: boolean;
+      form_data: Record<string, unknown>;
+    }) => d,
+  )
+  .handler(async ({ data, context }) => {
+    const { data: row, error } = await context.supabase
+      .from("orders")
+      .insert({
+        client_user_id: context.userId,
+        client_name: data.client_name,
+        client_email: data.client_email,
+        style: data.style,
+        people_count: data.people_count,
+        include_pet: data.include_pet,
+        status: "awaiting_photos",
+        form_data: data.form_data,
+      })
+      .select()
+      .single();
+    if (error) throw new Error(error.message);
+    return { id: row.id as string };
+  });
+
+export const listMyOrders = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data, error } = await context.supabase
+      .from("orders")
+      .select("*, order_versions(*), order_photos(*)")
+      .eq("client_user_id", context.userId)
+      .order("created_at", { ascending: false });
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
+
+export const addOrderPhotos = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: { order_id: string; paths: string[] }) => d)
+  .handler(async ({ data, context }) => {
+    if (!data.paths.length) return { ok: true };
+    const { error } = await context.supabase
+      .from("order_photos")
+      .insert(
+        data.paths.map((path) => ({
+          order_id: data.order_id,
+          storage_path: path,
+          uploaded_by: context.userId,
+        })),
+      );
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
 export const getSignedVersionUrls = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((d: { paths: string[] }) => d)
+  .validator((d: { paths: string[] }) => d)
   .handler(async ({ data, context }) => {
     if (!data.paths.length) return [] as { path: string; url: string }[];
     const out: { path: string; url: string }[] = [];

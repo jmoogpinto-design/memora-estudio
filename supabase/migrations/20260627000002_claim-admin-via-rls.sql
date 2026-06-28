@@ -1,0 +1,15 @@
+
+-- Remove the SQL function approach (PostgREST cache issue on free tier).
+-- Instead: grant INSERT on user_roles with a policy that enforces the "first admin only" rule.
+
+DROP FUNCTION IF EXISTS public.claim_first_admin();
+
+GRANT INSERT ON public.user_roles TO authenticated;
+
+CREATE POLICY "Claim first admin" ON public.user_roles
+FOR INSERT TO authenticated
+WITH CHECK (
+  user_id = auth.uid()
+  AND role = 'admin'
+  AND NOT EXISTS (SELECT 1 FROM public.user_roles WHERE role = 'admin')
+);
