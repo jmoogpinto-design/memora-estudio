@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useServerFn } from "@tanstack/react-start";
 import { listMyOrders } from "@/lib/orders.functions";
-import { STYLES, STATUSES, SERIF, MUTE } from "../constants.js";
+import { STYLES, STATUSES, SERIF, MUTE, GOLD, INK, LINE } from "../constants.js";
 import { normalizeDbOrder, fmtFormato } from "../helpers.js";
 import { S } from "../styles.js";
 import { Frame, StatusTag } from "../ui/pieces.jsx";
 import NewOrder from "./NewOrder.jsx";
 import ClientDetail from "./ClientDetail.jsx";
+import drawing from "@/assets/login-drawing.jpg";
 
 export default function Client({ user }) {
   const [view, setView] = useState({ name: "dash" });
