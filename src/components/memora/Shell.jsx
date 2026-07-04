@@ -18,7 +18,7 @@ export default function Shell({ children, user, onLogout }) {
           </div>
         )}
       </header>
-      <main style={user ? S.main : { ...S.main, maxWidth: 1180 }}>{children}</main>
+      <main style={{ ...S.main, maxWidth: 1180 }}>{children}</main>
       <footer style={S.footer}>Memora · cada retrato é uma história contada à mão</footer>
     </div>
   );
