@@ -4,6 +4,7 @@ import { listOrders } from "@/lib/orders.functions";
 import { MUTE } from "../constants.js";
 import { S } from "../styles.js";
 import AdminCloudDetail from "./AdminCloudDetail.jsx";
+import AdminGaleria from "./AdminGaleria.jsx";
 import NewOrderModal from "./NewOrderModal.jsx";
 
 const TABS = [
@@ -12,6 +13,7 @@ const TABS = [
   { id: "in_production", label: "Em produção" },
   { id: "versions_sent", label: "Aguard. aprovação" },
   { id: "concluded", label: "Concluídos" },
+  { id: "galeria", label: "Galeria ✦" },
 ];
 
 const BADGE_S = {
@@ -72,14 +74,16 @@ export default function AdminCloud({ homeKey }) {
         <button className="primary" onClick={() => setShowNew(true)}>+ Novo pedido</button>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
-        {[["Pedidos ativos", active], ["Aguardando aprovação", pending], ["Concluídos", done]].map(([k, v]) => (
-          <div key={k} style={{ background: "#f5f4f2", borderRadius: 8, padding: "12px 14px", border: "0.5px solid #e8e4dc" }}>
-            <div style={{ fontSize: 22, fontWeight: 500 }}>{v}</div>
-            <div style={{ fontSize: 11, color: MUTE, marginTop: 2 }}>{k}</div>
-          </div>
-        ))}
-      </div>
+      {tab !== "galeria" && (
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 10, marginBottom: 20 }}>
+          {[["Pedidos ativos", active], ["Aguardando aprovação", pending], ["Concluídos", done]].map(([k, v]) => (
+            <div key={k} style={{ background: "#f5f4f2", borderRadius: 8, padding: "12px 14px", border: "0.5px solid #e8e4dc" }}>
+              <div style={{ fontSize: 22, fontWeight: 500 }}>{v}</div>
+              <div style={{ fontSize: 11, color: MUTE, marginTop: 2 }}>{k}</div>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div style={{ display: "flex", borderBottom: "0.5px solid #e8e4dc", marginBottom: 16 }}>
         {TABS.map(t => (
@@ -92,36 +96,38 @@ export default function AdminCloud({ homeKey }) {
         ))}
       </div>
 
-      {loading ? (
-        <p style={{ color: MUTE, padding: "20px 0" }}>Carregando…</p>
-      ) : (
-        <div style={{ ...S.card, padding: "4px 14px" }}>
-          {visible.length === 0 && (
-            <p style={{ color: MUTE, fontSize: 13, padding: "14px 0" }}>Nenhum pedido nesta categoria.</p>
-          )}
-          {visible.map(o => {
-            const { label, s } = getBadge(o.status);
-            return (
-              <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "0.5px solid #eeebe4" }}>
-                <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#F0E8D8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 500, color: "#8A6A30", flexShrink: 0 }}>
-                  {initials(o.client_name)}
-                </div>
-                <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 500 }}>
-                    {o.client_name} <span style={{ color: MUTE, fontWeight: 400 }}>#{o.id.slice(0, 8)}</span>
+      {tab === "galeria" ? <AdminGaleria /> : (
+        loading ? (
+          <p style={{ color: MUTE, padding: "20px 0" }}>Carregando…</p>
+        ) : (
+          <div style={{ ...S.card, padding: "4px 14px" }}>
+            {visible.length === 0 && (
+              <p style={{ color: MUTE, fontSize: 13, padding: "14px 0" }}>Nenhum pedido nesta categoria.</p>
+            )}
+            {visible.map(o => {
+              const { label, s } = getBadge(o.status);
+              return (
+                <div key={o.id} style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 0", borderBottom: "0.5px solid #eeebe4" }}>
+                  <div style={{ width: 36, height: 36, borderRadius: "50%", background: "#F0E8D8", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 500, color: "#8A6A30", flexShrink: 0 }}>
+                    {initials(o.client_name)}
                   </div>
-                  <div style={{ fontSize: 12, color: MUTE }}>
-                    {o.style || "—"} · {new Date(o.created_at).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: 500 }}>
+                      {o.client_name} <span style={{ color: MUTE, fontWeight: 400 }}>#{o.id.slice(0, 8)}</span>
+                    </div>
+                    <div style={{ fontSize: 12, color: MUTE }}>
+                      {o.style || "—"} · {new Date(o.created_at).toLocaleDateString("pt-BR", { day: "numeric", month: "short" })}
+                    </div>
                   </div>
+                  <span style={{ ...s, display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 20, letterSpacing: "0.03em", whiteSpace: "nowrap" }}>
+                    {label}
+                  </span>
+                  <button className="ghost sm2" onClick={() => setOpenId(o.id)}>Ver pedido →</button>
                 </div>
-                <span style={{ ...s, display: "inline-flex", alignItems: "center", fontSize: 11, fontWeight: 500, padding: "3px 10px", borderRadius: 20, letterSpacing: "0.03em", whiteSpace: "nowrap" }}>
-                  {label}
-                </span>
-                <button className="ghost sm2" onClick={() => setOpenId(o.id)}>Ver pedido →</button>
-              </div>
-            );
-          })}
-        </div>
+              );
+            })}
+          </div>
+        )
       )}
 
       {showNew && <NewOrderModal onClose={() => setShowNew(false)} onCreated={() => { setShowNew(false); refresh(); }} />}
