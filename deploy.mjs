@@ -18,6 +18,11 @@ wrangler.vars = {
   SUPABASE_PUBLISHABLE_KEY: env.SUPABASE_PUBLISHABLE_KEY,
 };
 
+wrangler.routes = [
+  { pattern: "app.memoraestudio.com.br/*", zone_name: "memoraestudio.com.br" }
+];
+wrangler.workers_dev = true;
+
 writeFileSync(wranglerPath, JSON.stringify(wrangler, null, 2));
 console.log("✓ Variáveis injetadas:", wrangler.vars);
 

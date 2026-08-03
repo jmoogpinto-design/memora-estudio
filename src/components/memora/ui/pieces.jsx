@@ -89,13 +89,24 @@ export function InspiracoesGaleria({ selected, onChange }) {
 
   return (
     <div>
-      <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+      {/* Miniaturas das selecionadas + botão abrir */}
+      <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
         {selected.map((id) => {
           const url = getUrl(id);
-          return <div key={id} style={{ ...S.thumb, width: 70, height: 70, overflow: "hidden", background: url ? `center/cover no-repeat url(${url})` : "#ece5d8" }} />;
+          return (
+            <div key={id} style={{
+              width: 52, height: 52, borderRadius: 8, overflow: "hidden", flexShrink: 0,
+              background: url ? `center/cover no-repeat url(${url})` : "#ece5d8",
+              border: `1.5px solid ${GOLD}`,
+            }} />
+          );
         })}
-        <button className="ghost" type="button" onClick={() => setOpen(true)}>✦ Abrir galeria de inspirações</button>
-        <span style={{ fontSize: 13, color: MUTE }}>{selected.length}/3 selecionadas</span>
+        <button className="ghost" type="button" onClick={() => setOpen(true)}>
+          {selected.length === 0 ? "✦ Abrir galeria" : "Editar seleção"}
+        </button>
+        {selected.length > 0 && (
+          <span style={{ fontSize: 12, color: MUTE }}>{selected.length}/3</span>
+        )}
       </div>
 
       {open && (
@@ -105,22 +116,61 @@ export function InspiracoesGaleria({ selected, onChange }) {
               <h3 style={{ ...S.h2, margin: 0 }}>Galeria de inspirações</h3>
               <button className="ghost sm2" onClick={() => setOpen(false)}>Fechar</button>
             </div>
-            <p style={{ color: MUTE, fontSize: 14, margin: "0 0 16px" }}>Toque para selecionar até 3 que combinam com o que você sonha.</p>
+            <p style={{ color: MUTE, fontSize: 13, margin: "0 0 14px" }}>
+              Selecione até 3 obras que combinam com o que você imagina.
+            </p>
             {loading && <p style={{ color: MUTE, textAlign: "center", padding: 24 }}>Carregando…</p>}
             {!loading && images.length === 0 && (
               <p style={{ color: MUTE, textAlign: "center", padding: 24 }}>Em breve — obras sendo adicionadas.</p>
             )}
             {!loading && images.length > 0 && (
-              <div style={S.galeriaGrid}>
-                {images.map((g) => (
-                  <button key={g.id} type="button" className={selected.includes(g.id) ? "gitem on" : "gitem"} onClick={() => toggle(g.id)}>
-                    <img src={g.url} alt="" style={{ width: "100%", height: 84, objectFit: "cover", display: "block", borderRadius: "6px 6px 0 0" }} />
-                    {selected.includes(g.id) && <span style={S.gcheck}>✓</span>}
-                  </button>
-                ))}
+              <div style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(3, 1fr)",
+                gap: 8,
+              }}>
+                {images.map((g) => {
+                  const isOn = selected.includes(g.id);
+                  return (
+                    <button
+                      key={g.id}
+                      type="button"
+                      onClick={() => toggle(g.id)}
+                      style={{
+                        position: "relative",
+                        aspectRatio: "1 / 1",
+                        padding: 0,
+                        border: isOn ? `2.5px solid ${GOLD}` : "2px solid transparent",
+                        borderRadius: 10,
+                        overflow: "hidden",
+                        cursor: "pointer",
+                        background: "#f5f4f2",
+                        transition: "border-color .15s",
+                        boxShadow: isOn ? `0 0 0 2px rgba(154,123,63,.25)` : "none",
+                      }}
+                    >
+                      <img
+                        src={g.url}
+                        alt=""
+                        style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
+                      />
+                      {isOn && (
+                        <span style={{
+                          position: "absolute", top: 6, right: 6,
+                          width: 22, height: 22, borderRadius: "50%",
+                          background: GOLD, color: "#fff",
+                          display: "flex", alignItems: "center", justifyContent: "center",
+                          fontSize: 11, fontWeight: 700,
+                        }}>✓</span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
             )}
-            <button className="primary block" style={{ marginTop: 18 }} onClick={() => setOpen(false)}>Concluir seleção ({selected.length}/3)</button>
+            <button className="primary block" style={{ marginTop: 16 }} onClick={() => setOpen(false)}>
+              Confirmar seleção ({selected.length}/3)
+            </button>
           </div>
         </div>
       )}

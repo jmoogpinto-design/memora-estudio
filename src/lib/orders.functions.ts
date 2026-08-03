@@ -139,6 +139,7 @@ export const submitClientOrder = createServerFn({ method: "POST" })
       people_count: number;
       include_pet: boolean;
       form_data: Record<string, unknown>;
+      price_cents?: number;
     }) => d,
   )
   .handler(async ({ data, context }) => {
@@ -153,6 +154,7 @@ export const submitClientOrder = createServerFn({ method: "POST" })
         include_pet: data.include_pet,
         status: "awaiting_photos",
         form_data: data.form_data,
+        price_cents: data.price_cents ?? null,
       })
       .select()
       .single();
@@ -188,6 +190,93 @@ export const addOrderPhotos = createServerFn({ method: "POST" })
       );
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export const approveClientVersion = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: { order_id: string; chosen_version: number; adjustment_notes: string | null }) => d)
+  .handler(async ({ data, context }) => {
+    const { data: existing, error: fetchErr } = await context.supabase
+      .from("orders")
+      .select("form_data")
+      .eq("id", data.order_id)
+      .eq("client_user_id", context.userId)
+      .single();
+    if (fetchErr || !existing) throw new Error("Pedido não encontrado ou sem permissão");
+    const merged = {
+      ...((existing.form_data as Record<string, unknown>) || {}),
+      chosen_version: data.chosen_version,
+      adjustment_notes: data.adjustment_notes,
+    };
+    const newStatus = data.adjustment_notes ? "in_production" : "approved";
+    const { error } = await context.supabase
+      .from("orders")
+      .update({ form_data: merged, status: newStatus as never })
+      .eq("id", data.order_id)
+      .eq("client_user_id", context.userId);
+    if (error) throw new Error(error.message);
+    return { ok: true, status: newStatus };
+  });
+
+export const getMyProfile = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { data } = await context.supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", context.userId)
+      .maybeSingle();
+    return (data ?? null) as { id: string; whatsapp: string | null; address: string | null } | null;
+  });
+
+export const saveMyProfile = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((d: { first_name: string; last_name: string; whatsapp: string; address: string }) => d)
+  .handler(async ({ data, context }) => {
+    const { error } = await context.supabase
+      .from("profiles")
+      .upsert({
+        id: context.userId,
+        first_name: data.first_name,
+        last_name:  data.last_name,
+        whatsapp:   data.whatsapp,
+        address:    data.address,
+        updated_at: new Date().toISOString(),
+      });
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+export const listGalleryImages = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const SUPABASE_URL = process.env.SUPABASE_URL!;
+    const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/gallery`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ prefix: "", limit: 60, offset: 0 }),
+    });
+    if (!res.ok) return [] as string[];
+    const files = (await res.json()) as Array<{ name: string }>;
+    return files
+      .filter(f => !f.name.startsWith("."))
+      .map(f => `${SUPABASE_URL}/storage/v1/object/public/gallery/${encodeURIComponent(f.name)}`);
+  });
+
+export const listMosaicImages = createServerFn({ method: "GET" })
+  .handler(async () => {
+    const SUPABASE_URL = process.env.SUPABASE_URL!;
+    const SUPABASE_KEY = process.env.SUPABASE_PUBLISHABLE_KEY!;
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/mosaic`, {
+      method: "POST",
+      headers: { apikey: SUPABASE_KEY, "Content-Type": "application/json" },
+      body: JSON.stringify({ prefix: "", limit: 9, offset: 0 }),
+    });
+    if (!res.ok) return [] as string[];
+    const files = (await res.json()) as Array<{ name: string }>;
+    return files
+      .filter(f => !f.name.startsWith("."))
+      .map(f => `${SUPABASE_URL}/storage/v1/object/public/mosaic/${encodeURIComponent(f.name)}`);
   });
 
 export const getSignedVersionUrls = createServerFn({ method: "POST" })

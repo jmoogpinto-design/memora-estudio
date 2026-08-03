@@ -86,7 +86,7 @@ export const S = {
 };
 
 export const CSS = `
-@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Figtree:wght@400;500;600;700&family=Montserrat:wght@700;800&display=swap');
 * { box-sizing: border-box; }
 body { margin: 0; }
 em { font-style: italic; color: ${GOLD}; }
@@ -211,6 +211,10 @@ table th { text-align: left; font-size: 11px; letter-spacing: .1em; text-transfo
 .trow td { padding: 14px 12px; border-bottom: 1px solid ${PAPER}; }
 .trow:hover { background: ${PAPER}; }
 
+.fg { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; align-items: start; }
+.fg.sm { gap: 16px; }
+.fg.cols4 { grid-template-columns: 1fr 1fr; gap: 0 32px; }
+@media (max-width: 700px) { .fg, .fg.cols4 { grid-template-columns: 1fr; gap: 16px; } }
 @media (max-width: 880px) { [style*="grid-template-columns: 1.05fr 1fr"] { grid-template-columns: 1fr !important; } }
 @media (max-width: 760px) { h1 { font-size: 34px !important; } .railLbl { display: none; } .bar { width: 16px; } }
 @media (max-width: 640px) {
