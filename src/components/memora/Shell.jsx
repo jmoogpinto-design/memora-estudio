@@ -5,6 +5,7 @@ import { PIX_KEY } from "./constants.js";
 const WA_NUMBER = PIX_KEY.replace(/\D/g, "");
 const WA_MSG = encodeURIComponent("Olá! Tenho uma dúvida sobre meu pedido no Ateliê Memora. 🎨");
 const WA_HREF = `https://wa.me/${WA_NUMBER}?text=${WA_MSG}`;
+const SITE_URL = "https://memoraestudio.com.br";
 
 function WhatsAppButton() {
   return (
@@ -45,9 +46,15 @@ export default function Shell({ children, user, onLogout, wide, fluid, onHome })
       <style>{CSS}</style>
       <header style={S.header}>
         <div style={S.brand}>
-          <button onClick={onHome} style={{ background: "none", border: "none", padding: 0, cursor: onHome ? "pointer" : "default", lineHeight: 0 }}>
-            <img src="/logo.png" alt="Memora" style={{ height: 36, display: "block" }} />
-          </button>
+          {onHome ? (
+            <button onClick={onHome} style={{ background: "none", border: "none", padding: 0, cursor: "pointer", lineHeight: 0 }}>
+              <img src="/logo.png" alt="Memora" style={{ height: 36, display: "block" }} />
+            </button>
+          ) : (
+            <a href={SITE_URL} title="Voltar para o site" style={{ lineHeight: 0 }}>
+              <img src="/logo.png" alt="Memora" style={{ height: 36, display: "block" }} />
+            </a>
+          )}
         </div>
         {user && (
           <div style={S.headRight}>

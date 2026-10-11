@@ -9,6 +9,7 @@ export default function Login() {
   const [mode, setMode] = useState("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
@@ -18,6 +19,7 @@ export default function Login() {
     setError(""); setInfo("");
     if (!email || !password) { setError("Preencha e-mail e senha para continuar."); return; }
     if (password.length < 6) { setError("A senha precisa ter pelo menos 6 caracteres."); return; }
+    if (mode === "signup" && password !== confirm) { setError("As senhas não coincidem."); return; }
     setLoading(true);
     try {
       if (mode === "signin") {
@@ -116,6 +118,12 @@ export default function Login() {
             <>
               <label className="lbl" style={{ marginTop: 14 }}>Senha</label>
               <input className="inp" type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="••••••••" />
+              {mode === "signup" && (
+                <>
+                  <label className="lbl" style={{ marginTop: 14 }}>Confirmar senha</label>
+                  <input className="inp" type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" />
+                </>
+              )}
             </>
           )}
           {error && <p style={{ color: "#c0392b", marginTop: 10, fontSize: 13 }}>{error}</p>}
