@@ -736,7 +736,7 @@ function SuccessScreen() {
         Pedido recebido!
       </h2>
       <p style={{ fontSize: 15, color: "#6b6b6b", lineHeight: 1.7, maxWidth: 380, margin: "0 auto" }}>
-        Confirmamos seu Pix e em breve nossa equipe começa a criar sua obra. Você receberá uma prévia para aprovação.
+        Assim que confirmarmos o seu pagamento, seu pedido será confirmado e nossa equipe começa a criar sua obra. Você receberá uma prévia para aprovação.
       </p>
     </div>
   );
