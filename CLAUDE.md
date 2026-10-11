@@ -116,7 +116,7 @@ Bucket `order-images` com RLS: admins gerenciam tudo; clientes leem/escrevem ape
 - Fluxo de autenticação completo funcionando e validado com testes automatizados
 - Login com credenciais erradas → mensagem "Invalid login credentials" ✅
 - Signup de novo cliente → dashboard de cliente, sem acesso admin ✅
-- Login admin (`artista@memoraestudio.com`) → dashboard de ateliê ✅
+- Login admin (`memoraestudio@outlook.com`, única conta admin desde 2026-10-10) → dashboard de ateliê ✅
 - Botão "Sou a artista" → promove para admin via RLS (sem dependência de RPC) ✅
 - `inputValidator()` → `validator()` em `orders.functions.ts` (API atualizada)
 - Todas as migrations aplicadas no projeto Supabase correto

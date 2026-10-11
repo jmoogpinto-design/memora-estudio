@@ -1,0 +1,13 @@
+{
+  "name": "memora-keepalive",
+  "main": "worker.js",
+  "compatibility_date": "2026-07-31",
+  "workers_dev": true,
+  "triggers": {
+    "crons": ["0 12 */2 * *"]
+  },
+  "vars": {
+    "SUPABASE_URL": "https://jsdcwkuekaqfwukcsjyt.supabase.co",
+    "SUPABASE_PUBLISHABLE_KEY": "sb_publishable_1GsBiMGSa-InrcDEDhAM0A_5owssQ8h"
+  }
+}

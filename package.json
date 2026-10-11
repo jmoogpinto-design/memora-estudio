@@ -9,6 +9,7 @@
     "build:dev": "vite build --mode development",
     "preview": "vite preview",
     "deploy": "npm run build && node deploy.mjs",
+    "deploy:keepalive": "npx wrangler deploy --config keepalive/wrangler.json",
     "lint": "eslint .",
     "format": "prettier --write ."
   },
