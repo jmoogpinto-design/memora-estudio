@@ -153,7 +153,7 @@ export const submitClientOrder = createServerFn({ method: "POST" })
         people_count: data.people_count,
         include_pet: data.include_pet,
         status: "awaiting_photos",
-        form_data: data.form_data,
+        form_data: data.form_data as never,
         price_cents: data.price_cents ?? null,
       })
       .select()

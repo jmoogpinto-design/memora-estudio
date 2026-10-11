@@ -15,7 +15,10 @@ export default function Login() {
   const [showForgot, setShowForgot] = useState(false);
 
   const submit = async () => {
-    setError(""); setInfo(""); setLoading(true);
+    setError(""); setInfo("");
+    if (!email || !password) { setError("Preencha e-mail e senha para continuar."); return; }
+    if (password.length < 6) { setError("A senha precisa ter pelo menos 6 caracteres."); return; }
+    setLoading(true);
     try {
       if (mode === "signin") {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -29,7 +32,11 @@ export default function Login() {
         setInfo("Conta criada! Você já está conectada.");
       }
     } catch (e) {
-      setError(e.message || "Erro ao entrar.");
+      const msg = e?.message || "";
+      if (/Invalid login credentials/i.test(msg)) setError("E-mail ou senha incorretos.");
+      else if (/User already registered/i.test(msg)) setError("Este e-mail já tem cadastro. Faça login.");
+      else if (/Password.*(short|weak|pwned|leaked)/i.test(msg)) setError("Senha muito fraca ou comprometida. Escolha outra.");
+      else setError(msg || "Não foi possível concluir. Tente novamente.");
     } finally { setLoading(false); }
   };
 
